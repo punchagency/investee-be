@@ -1,0 +1,9 @@
+// Re-export all entities and types
+export { User } from "./User.entity";
+export { Session } from "./Session.entity";
+export { Property } from "./Property.entity";
+export { LoanApplication } from "./LoanApplication.entity";
+export { PropertyListing } from "./PropertyListing.entity";
+export { PropertyWatchlist } from "./PropertyWatchlist.entity";
+export { PropertyOffer } from "./PropertyOffer.entity";
+export { PropertyAlert } from "./PropertyAlert.entity";
