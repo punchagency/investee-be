@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Investee Server
 
 Backend API server for the Investee platform.
@@ -45,3 +46,6 @@ Backend API server for the Investee platform.
 ## API Endpoints
 
 See `src/routes.ts` for all available endpoints.
+=======
+# investee-be
+>>>>>>> 9f7de8743fd6e429f5fea4e7ec078d9c01320565
