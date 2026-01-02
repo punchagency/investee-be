@@ -1,6 +1,6 @@
 import { AppDataSource } from "../db";
 import { Repository } from "typeorm";
-import { PropertyListing, InsertListing } from "@/entities";
+import { PropertyListing } from "../entities/PropertyListing.entity";
 
 export class PropertyListingStorage {
   private listingRepo: Repository<PropertyListing>;
@@ -9,7 +9,9 @@ export class PropertyListingStorage {
     this.listingRepo = AppDataSource.getRepository(PropertyListing);
   }
 
-  async createListing(listing: InsertListing): Promise<PropertyListing> {
+  async createListing(
+    listing: Partial<Omit<PropertyListing, "id" | "createdAt" | "updatedAt">>
+  ): Promise<PropertyListing> {
     const created = this.listingRepo.create(listing);
     return await this.listingRepo.save(created);
   }

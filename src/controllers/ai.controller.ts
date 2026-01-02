@@ -1,42 +1,12 @@
 import type { Request, Response } from "express";
-import {
-  generateCompletion,
-  generateChatCompletion,
-} from "../services/ai.service";
+import { generateAgentChatCompletion } from "../services/ai.service";
 
 /**
- * Generate a simple AI completion from a prompt
- * POST /api/ai/completion
- * Body: { prompt: string }
- */
-export const createCompletion = async (req: Request, res: Response) => {
-  try {
-    const { prompt } = req.body;
-
-    if (!prompt || typeof prompt !== "string") {
-      res
-        .status(400)
-        .json({ error: "Prompt is required and must be a string" });
-      return;
-    }
-
-    const response = await generateCompletion(prompt);
-    res.json({ response });
-  } catch (error) {
-    console.error("AI completion error:", error);
-    res.status(500).json({
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to generate completion",
-    });
-  }
-};
-
-/**
- * Generate a chat completion with conversation history
+ * Generate a chat completion with agentic tool calling
  * POST /api/ai/chat
  * Body: { messages: Array<{ role: "system" | "user" | "assistant", content: string }> }
+ *
+ * The AI can make up to 5 automated tool calls to fetch property data from ATTOM and RentCast APIs
  */
 export const createChatCompletion = async (req: Request, res: Response) => {
   try {
@@ -64,7 +34,7 @@ export const createChatCompletion = async (req: Request, res: Response) => {
       return;
     }
 
-    const response = await generateChatCompletion(messages);
+    const response = await generateAgentChatCompletion(messages);
     res.json({ response });
   } catch (error) {
     console.error("AI chat completion error:", error);

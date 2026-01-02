@@ -32,8 +32,3 @@ export class PropertyOffer {
   @UpdateDateColumn({ name: "updated_at" })
   updatedAt!: Date;
 }
-
-// Type exports for compatibility
-export type InsertOffer = Partial<
-  Omit<PropertyOffer, "id" | "createdAt" | "updatedAt">
->;

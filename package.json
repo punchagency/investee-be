@@ -6,6 +6,7 @@
     "scripts": {
         "dev": "tsx watch src/index.ts",
         "build": "tsx script/build.ts",
+        "seed": "tsx scripts/import-properties.ts",
         "start": "NODE_ENV=production node dist/index.cjs",
         "check": "tsc",
         "typeorm": "typeorm-ts-node-commonjs"

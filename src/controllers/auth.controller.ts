@@ -47,6 +47,7 @@ export const register = async (req: Request, res: Response) => {
       firstName: firstName || null,
       lastName: lastName || null,
       profileImageUrl: null,
+      role: "user", // Default role
     });
 
     logger.info({ email, userId: user.id }, "User registered successfully");
@@ -120,8 +121,8 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate tokens
-    const accessToken = generateAccessToken(user.id, user.email!);
-    const refreshToken = generateRefreshToken(user.id, user.email!);
+    const accessToken = generateAccessToken(user.id, user.email!, user.role);
+    const refreshToken = generateRefreshToken(user.id, user.email!, user.role);
 
     // Set cookies
     res.cookie("accessToken", accessToken, {
@@ -205,7 +206,7 @@ export const refreshToken = async (req: Request, res: Response) => {
     }
 
     // Generate new access token
-    const newAccessToken = generateAccessToken(user.id, user.email!);
+    const newAccessToken = generateAccessToken(user.id, user.email!, user.role);
 
     // Set new access token cookie
     res.cookie("accessToken", newAccessToken, {

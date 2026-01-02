@@ -35,8 +35,3 @@ export class PropertyListing {
   @UpdateDateColumn({ name: "updated_at" })
   updatedAt!: Date;
 }
-
-// Type exports for compatibility
-export type InsertListing = Partial<
-  Omit<PropertyListing, "id" | "createdAt" | "updatedAt">
->;

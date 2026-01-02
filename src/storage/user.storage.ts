@@ -1,6 +1,6 @@
 import { AppDataSource } from "../db";
 import { Repository } from "typeorm";
-import { User, UpsertUser } from "@/entities";
+import { User } from "../entities/User.entity";
 
 export class UserStorage {
   private userRepo: Repository<User>;
@@ -28,7 +28,7 @@ export class UserStorage {
     return user || undefined;
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
+  async upsertUser(userData: Partial<User> & Pick<User, "id">): Promise<User> {
     const existing = await this.userRepo.findOne({
       where: { id: userData.id },
     });

@@ -1,6 +1,6 @@
 import { AppDataSource } from "../db";
 import { Repository } from "typeorm";
-import { PropertyOffer, InsertOffer } from "@/entities";
+import { PropertyOffer } from "../entities/PropertyOffer.entity";
 
 export class PropertyOfferStorage {
   private offerRepo: Repository<PropertyOffer>;
@@ -9,7 +9,9 @@ export class PropertyOfferStorage {
     this.offerRepo = AppDataSource.getRepository(PropertyOffer);
   }
 
-  async createOffer(offer: InsertOffer): Promise<PropertyOffer> {
+  async createOffer(
+    offer: Partial<Omit<PropertyOffer, "id" | "createdAt" | "updatedAt">>
+  ): Promise<PropertyOffer> {
     const created = this.offerRepo.create(offer);
     return await this.offerRepo.save(created);
   }

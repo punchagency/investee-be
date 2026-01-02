@@ -71,7 +71,7 @@ export async function enrichPropertyWithAttom(
       return;
     }
 
-    const basicData = await basicResponse.json();
+    const basicData = (await basicResponse.json()) as any;
     const prop = basicData.property?.[0];
 
     if (!prop) {
@@ -86,7 +86,7 @@ export async function enrichPropertyWithAttom(
     let attomTaxAmount: number | null = null;
     let attomTaxYear: number | null = null;
     if (assessmentResponse.ok) {
-      const assessmentData = await assessmentResponse.json();
+      const assessmentData = (await assessmentResponse.json()) as any;
       const assessment = assessmentData.property?.[0]?.assessment;
       if (assessment?.tax?.taxamt) {
         annualTaxes = Math.round(assessment.tax.taxamt);
@@ -100,7 +100,7 @@ export async function enrichPropertyWithAttom(
     let attomAvmLow: number | null = null;
     let attomAvmConfidence: number | null = null;
     if (avmResponse.ok) {
-      const avmData = await avmResponse.json();
+      const avmData = (await avmResponse.json()) as any;
       const avm = avmData.property?.[0]?.avm?.amount;
       if (avm) {
         attomAvmValue = avm.value || null;
@@ -142,6 +142,152 @@ export async function enrichPropertyWithAttom(
       attomStatus: "failed",
       attomError: error instanceof Error ? error.message : "Unknown error",
     });
+  }
+}
+
+/**
+ * Get property details from ATTOM API for AI tool calling
+ * Returns formatted data optimized for AI consumption
+ */
+export async function getPropertyDetailsForAI(
+  address: string,
+  city: string,
+  state: string
+): Promise<{
+  success: boolean;
+  data?: any;
+  error?: string;
+}> {
+  const apiKey = process.env.ATTOM_API_KEY;
+  if (!apiKey) {
+    return {
+      success: false,
+      error: "ATTOM API key not configured",
+    };
+  }
+
+  try {
+    const address1 = encodeURIComponent(address);
+    const address2 = encodeURIComponent(`${city}, ${state}`);
+
+    const [basicResponse, assessmentResponse, avmResponse] = await Promise.all([
+      fetch(
+        `${ATTOM_API_BASE}/property/basicprofile?address1=${address1}&address2=${address2}`,
+        {
+          headers: {
+            Accept: "application/json",
+            apikey: apiKey,
+          },
+        }
+      ),
+      fetch(
+        `${ATTOM_API_BASE}/assessment/detail?address1=${address1}&address2=${address2}`,
+        {
+          headers: {
+            Accept: "application/json",
+            apikey: apiKey,
+          },
+        }
+      ),
+      fetch(
+        `${ATTOM_API_BASE}/attomavm/detail?address1=${address1}&address2=${address2}`,
+        {
+          headers: {
+            Accept: "application/json",
+            apikey: apiKey,
+          },
+        }
+      ),
+    ]);
+
+    if (basicResponse.status === 429) {
+      return {
+        success: false,
+        error: "Rate limited - please try again later",
+      };
+    }
+
+    if (!basicResponse.ok) {
+      return {
+        success: false,
+        error: `API returned ${basicResponse.status}`,
+      };
+    }
+
+    const basicData = (await basicResponse.json()) as any;
+    const prop = basicData.property?.[0];
+
+    if (!prop) {
+      return {
+        success: false,
+        error: "No property data found for this address",
+      };
+    }
+
+    // Parse assessment data
+    let annualTaxes: number | null = null;
+    let taxYear: number | null = null;
+    if (assessmentResponse.ok) {
+      const assessmentData = (await assessmentResponse.json()) as any;
+      const assessment = assessmentData.property?.[0]?.assessment;
+      if (assessment?.tax?.taxamt) {
+        annualTaxes = Math.round(assessment.tax.taxamt);
+        taxYear = assessment.tax.taxyear || null;
+      }
+    }
+
+    // Parse AVM data
+    let avmValue: number | null = null;
+    let avmHigh: number | null = null;
+    let avmLow: number | null = null;
+    let avmConfidence: number | null = null;
+    if (avmResponse.ok) {
+      const avmData = (await avmResponse.json()) as any;
+      const avm = avmData.property?.[0]?.avm?.amount;
+      if (avm) {
+        avmValue = avm.value || null;
+        avmHigh = avm.high || null;
+        avmLow = avm.low || null;
+        avmConfidence = avm.scr || null;
+      }
+    }
+
+    // Format for AI consumption
+    return {
+      success: true,
+      data: {
+        address: `${address}, ${city}, ${state}`,
+        mapUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          `${address}, ${city}, ${state}`
+        )}`,
+        marketValue:
+          prop.assessment?.market?.mktTotalValue ||
+          prop.assessment?.market?.mktTtlValue ||
+          null,
+        assessedValue:
+          prop.assessment?.assessed?.assdTotalValue ||
+          prop.assessment?.assessed?.assdTtlValue ||
+          null,
+        avmValue,
+        avmRange: avmLow && avmHigh ? `$${avmLow} - $${avmHigh}` : null,
+        avmConfidence,
+        yearBuilt: prop.summary?.yearBuilt || null,
+        bedrooms: prop.building?.rooms?.beds || null,
+        bathrooms: prop.building?.rooms?.bathsTotal || null,
+        squareFeet: prop.building?.size?.bldgSize || null,
+        lotSize: prop.lot?.lotSize1 || null,
+        propertyType: prop.summary?.propClass || null,
+        lastSalePrice: prop.sale?.amount?.saleamt || null,
+        lastSaleDate: prop.sale?.saleTransDate || null,
+        annualTaxes,
+        taxYear,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
 }
 

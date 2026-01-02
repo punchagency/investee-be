@@ -7,3 +7,5 @@ export { PropertyListing } from "./PropertyListing.entity";
 export { PropertyWatchlist } from "./PropertyWatchlist.entity";
 export { PropertyOffer } from "./PropertyOffer.entity";
 export { PropertyAlert } from "./PropertyAlert.entity";
+export { Vendor } from "./Vendor.entity";
+export { PropertyFavorite } from "./PropertyFavorite.entity";

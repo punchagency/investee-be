@@ -17,6 +17,7 @@ import propertyWatchlistRoutes from "./routes/property-watchlist.routes";
 import propertyOfferRoutes from "./routes/property-offer.routes";
 import propertyAlertRoutes from "./routes/property-alert.routes";
 import aiRoutes from "./routes/ai.routes";
+import vendorRoutes from "./routes/vendor.routes";
 
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || "development";
@@ -95,6 +96,7 @@ app.use("/api", propertyWatchlistRoutes);
 app.use("/api", propertyOfferRoutes);
 app.use("/api", propertyAlertRoutes);
 app.use("/api", aiRoutes);
+app.use("/api", vendorRoutes);
 
 // Health check
 app.get("/", (req, res) => {

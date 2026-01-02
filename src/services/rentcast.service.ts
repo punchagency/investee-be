@@ -2,6 +2,19 @@ import { propertyStorage } from "../storage/property.storage";
 
 const RENTCAST_API_BASE = "https://api.rentcast.io/v1";
 
+/**
+ * Generate Google Maps URL for an address
+ */
+function generateGoogleMapsUrl(
+  address: string,
+  city?: string,
+  state?: string
+): string {
+  const fullAddress = city && state ? `${address}, ${city}, ${state}` : address;
+  const encoded = encodeURIComponent(fullAddress);
+  return `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+}
+
 export async function enrichPropertyWithRentcast(
   propertyId: string,
   address: string,
@@ -116,5 +129,350 @@ export async function enrichPropertyWithRentcast(
       rentcastStatus: "failed",
       rentcastError: error instanceof Error ? error.message : "Unknown error",
     });
+  }
+}
+
+/**
+ * Get property value estimate from RentCast API for AI tool calling
+ * Returns formatted AVM data optimized for AI consumption
+ */
+export async function getPropertyValueForAI(
+  address: string,
+  city: string,
+  state: string,
+  postalCode?: string
+): Promise<{
+  success: boolean;
+  data?: any;
+  error?: string;
+}> {
+  const apiKey = process.env.RENTCAST_API_KEY;
+  if (!apiKey) {
+    return {
+      success: false,
+      error: "RentCast API key not configured",
+    };
+  }
+
+  try {
+    const fullAddress = `${address}, ${city}, ${state}${
+      postalCode ? ` ${postalCode}` : ""
+    }`;
+    const encodedAddress = encodeURIComponent(fullAddress);
+
+    const response = await fetch(
+      `${RENTCAST_API_BASE}/avm/value?address=${encodedAddress}&compCount=10`,
+      {
+        headers: { Accept: "application/json", "X-Api-Key": apiKey },
+      }
+    );
+
+    if (response.status === 429) {
+      return {
+        success: false,
+        error: "Rate limited - please try again later",
+      };
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `API returned ${response.status}`,
+      };
+    }
+
+    const data = (await response.json()) as any;
+
+    return {
+      success: true,
+      data: {
+        address: fullAddress,
+        mapUrl: generateGoogleMapsUrl(address, city, state),
+        estimatedValue: data.price || null,
+        valueLow: data.priceLow || null,
+        valueHigh: data.priceHigh || null,
+        valueRange:
+          data.priceLow && data.priceHigh
+            ? `$${data.priceLow.toLocaleString()} - $${data.priceHigh.toLocaleString()}`
+            : null,
+        comparablesCount: data.comparables?.length || 0,
+        comparables: data.comparables?.slice(0, 3).map((comp: any) => ({
+          address: comp.formattedAddress,
+          price: comp.price,
+          bedrooms: comp.bedrooms,
+          bathrooms: comp.bathrooms,
+          squareFeet: comp.squareFootage,
+          distance: comp.distance,
+        })),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Get rent estimate from RentCast API for AI tool calling
+ * Returns formatted rental data optimized for AI consumption
+ */
+export async function getRentEstimateForAI(
+  address: string,
+  city: string,
+  state: string,
+  postalCode?: string
+): Promise<{
+  success: boolean;
+  data?: any;
+  error?: string;
+}> {
+  const apiKey = process.env.RENTCAST_API_KEY;
+  if (!apiKey) {
+    return {
+      success: false,
+      error: "RentCast API key not configured",
+    };
+  }
+
+  try {
+    const fullAddress = `${address}, ${city}, ${state}${
+      postalCode ? ` ${postalCode}` : ""
+    }`;
+    const encodedAddress = encodeURIComponent(fullAddress);
+
+    const response = await fetch(
+      `${RENTCAST_API_BASE}/avm/rent/long-term?address=${encodedAddress}&compCount=10`,
+      {
+        headers: { Accept: "application/json", "X-Api-Key": apiKey },
+      }
+    );
+
+    if (response.status === 429) {
+      return {
+        success: false,
+        error: "Rate limited - please try again later",
+      };
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `API returned ${response.status}`,
+      };
+    }
+
+    const data = (await response.json()) as any;
+
+    return {
+      success: true,
+      data: {
+        address: fullAddress,
+        mapUrl: generateGoogleMapsUrl(address, city, state),
+        estimatedRent: data.rent || null,
+        rentLow: data.rentRangeLow || null,
+        rentHigh: data.rentRangeHigh || null,
+        rentRange:
+          data.rentRangeLow && data.rentRangeHigh
+            ? `$${data.rentRangeLow.toLocaleString()} - $${data.rentRangeHigh.toLocaleString()}`
+            : null,
+        comparablesCount: data.comparables?.length || 0,
+        comparables: data.comparables?.slice(0, 3).map((comp: any) => ({
+          address: comp.formattedAddress,
+          rent: comp.price,
+          bedrooms: comp.bedrooms,
+          bathrooms: comp.bathrooms,
+          squareFeet: comp.squareFootage,
+          distance: comp.distance,
+        })),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Get market overview for a ZIP code area
+ */
+export async function getMarketOverviewForAI(zipCode: string): Promise<{
+  success: boolean;
+  data?: any;
+  error?: string;
+}> {
+  const apiKey = process.env.RENTCAST_API_KEY;
+  if (!apiKey)
+    return { success: false, error: "RentCast API key not configured" };
+
+  try {
+    const response = await fetch(
+      `${RENTCAST_API_BASE}/markets/sale/stats?zipCode=${zipCode}&historyRange=12`,
+      {
+        headers: { Accept: "application/json", "X-Api-Key": apiKey },
+      }
+    );
+
+    if (!response.ok) {
+      return { success: false, error: `API returned ${response.status}` };
+    }
+
+    const data = (await response.json()) as any;
+
+    return {
+      success: true,
+      data: {
+        zipCode,
+        averagePrice: data.averagePrice,
+        medianPrice: data.medianPrice,
+        averagePricePerSqFt: data.averagePricePerSqFt,
+        totalListings: data.totalListings,
+        daysOnMarket: data.averageDaysOnMarket,
+        trend: "Data reflects market averages over the last 12 months",
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Search for active listings in a city/state area
+ */
+export async function searchActiveListingsForAI(
+  city: string,
+  state: string,
+  minPrice?: number,
+  maxPrice?: number,
+  limit: number = 5
+): Promise<{
+  success: boolean;
+  data?: any;
+  error?: string;
+}> {
+  const apiKey = process.env.RENTCAST_API_KEY;
+  if (!apiKey)
+    return { success: false, error: "RentCast API key not configured" };
+
+  try {
+    const params = new URLSearchParams({
+      city,
+      state,
+      status: "Active",
+      limit: limit.toString(),
+      listingType: "Sale",
+    });
+
+    if (minPrice) params.append("priceMin", minPrice.toString());
+    if (maxPrice) params.append("priceMax", maxPrice.toString());
+
+    const response = await fetch(
+      `${RENTCAST_API_BASE}/listings/sale?${params.toString()}`,
+      {
+        headers: { Accept: "application/json", "X-Api-Key": apiKey },
+      }
+    );
+
+    if (!response.ok) {
+      return { success: false, error: `API returned ${response.status}` };
+    }
+
+    const data = (await response.json()) as any[];
+
+    return {
+      success: true,
+      data: {
+        count: data.length,
+        listings: data.map((l) => ({
+          address: l.formattedAddress,
+          mapUrl: generateGoogleMapsUrl(l.formattedAddress),
+          price: l.price,
+          daysOnMarket: l.daysOnMarket,
+          headline: l.headline,
+          description: l.description
+            ? l.description.substring(0, 100) + "..."
+            : null,
+        })),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Search for properties by location
+ */
+export async function searchPropertiesForAI(
+  city?: string,
+  state?: string,
+  zipCode?: string,
+  propertyType?: string,
+  limit: number = 5
+): Promise<{
+  success: boolean;
+  data?: any;
+  error?: string;
+}> {
+  const apiKey = process.env.RENTCAST_API_KEY;
+  if (!apiKey)
+    return { success: false, error: "RentCast API key not configured" };
+
+  try {
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+    });
+
+    if (city) params.append("city", city);
+    if (state) params.append("state", state);
+    if (zipCode) params.append("zipCode", zipCode);
+    if (propertyType) params.append("propertyType", propertyType);
+
+    const response = await fetch(
+      `${RENTCAST_API_BASE}/properties?${params.toString()}`,
+      {
+        headers: { Accept: "application/json", "X-Api-Key": apiKey },
+      }
+    );
+
+    if (!response.ok) {
+      return { success: false, error: `API returned ${response.status}` };
+    }
+
+    const data = (await response.json()) as any[];
+
+    return {
+      success: true,
+      data: {
+        count: data.length,
+        properties: data.map((p) => ({
+          address: p.formattedAddress,
+          mapUrl: generateGoogleMapsUrl(p.formattedAddress),
+          city: p.city,
+          state: p.state,
+          zip: p.zipCode,
+          type: p.propertyType,
+          beds: p.bedrooms,
+          baths: p.bathrooms,
+          sqft: p.squareFootage,
+          lastSaleDate: p.lastSaleDate,
+          lastSalePrice: p.lastSalePrice,
+        })),
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
   }
 }

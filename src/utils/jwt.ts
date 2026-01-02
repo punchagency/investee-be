@@ -9,19 +9,28 @@ const JWT_REFRESH_SECRET =
 export interface TokenPayload {
   userId: string;
   email: string;
+  role: string;
 }
 
-export const generateAccessToken = (userId: string, email: string): string => {
+export const generateAccessToken = (
+  userId: string,
+  email: string,
+  role: string = "user"
+): string => {
   return jwt.sign(
-    { userId, email },
+    { userId, email, role },
     JWT_SECRET,
     { expiresIn: "7d" } // 7 days
   );
 };
 
-export const generateRefreshToken = (userId: string, email: string): string => {
+export const generateRefreshToken = (
+  userId: string,
+  email: string,
+  role: string = "user"
+): string => {
   return jwt.sign(
-    { userId, email },
+    { userId, email, role },
     JWT_REFRESH_SECRET,
     { expiresIn: "30d" } // 30 days
   );

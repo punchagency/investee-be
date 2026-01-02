@@ -1,10 +1,6 @@
 import { AppDataSource } from "../db";
 import { Repository } from "typeorm";
-import {
-  PropertyWatchlist,
-  PropertyWatchlistItem,
-  InsertWatchlist,
-} from "@/entities";
+import { PropertyWatchlist } from "../entities/PropertyWatchlist.entity";
 
 export class PropertyWatchlistStorage {
   private watchlistRepo: Repository<PropertyWatchlist>;
@@ -13,7 +9,9 @@ export class PropertyWatchlistStorage {
     this.watchlistRepo = AppDataSource.getRepository(PropertyWatchlist);
   }
 
-  async addToWatchlist(item: InsertWatchlist): Promise<PropertyWatchlistItem> {
+  async addToWatchlist(
+    item: Partial<Omit<PropertyWatchlist, "id" | "createdAt">>
+  ): Promise<PropertyWatchlist> {
     const created = this.watchlistRepo.create(item);
     return await this.watchlistRepo.save(created);
   }
@@ -22,7 +20,7 @@ export class PropertyWatchlistStorage {
     await this.watchlistRepo.delete({ userId, listingId });
   }
 
-  async getWatchlistByUser(userId: string): Promise<PropertyWatchlistItem[]> {
+  async getWatchlistByUser(userId: string): Promise<PropertyWatchlist[]> {
     return await this.watchlistRepo.find({
       where: { userId },
       order: { createdAt: "DESC" },

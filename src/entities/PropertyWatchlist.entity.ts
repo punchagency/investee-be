@@ -19,9 +19,3 @@ export class PropertyWatchlist {
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
 }
-
-// Type exports for compatibility
-export type InsertWatchlist = Partial<
-  Omit<PropertyWatchlist, "id" | "createdAt">
->;
-export type PropertyWatchlistItem = PropertyWatchlist;

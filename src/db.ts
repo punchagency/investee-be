@@ -8,6 +8,7 @@ import { PropertyListing } from "./entities/PropertyListing.entity";
 import { PropertyWatchlist } from "./entities/PropertyWatchlist.entity";
 import { PropertyOffer } from "./entities/PropertyOffer.entity";
 import { PropertyAlert } from "./entities/PropertyAlert.entity";
+import { Vendor } from "./entities/Vendor.entity";
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -29,6 +30,7 @@ export const AppDataSource = new DataSource({
     PropertyWatchlist,
     PropertyOffer,
     PropertyAlert,
+    Vendor,
   ],
 });
 
