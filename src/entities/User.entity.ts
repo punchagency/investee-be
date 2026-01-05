@@ -8,6 +8,7 @@ import {
   OneToMany,
 } from "typeorm";
 import { PropertyFavorite } from "./PropertyFavorite.entity";
+import { LoanApplication } from "./LoanApplication.entity";
 
 @Entity("users")
 export class User {
@@ -40,4 +41,7 @@ export class User {
 
   @OneToMany(() => PropertyFavorite, (favorite) => favorite.user)
   favorites!: PropertyFavorite[];
+
+  @OneToMany(() => LoanApplication, (application) => application.user)
+  loanApplications!: LoanApplication[];
 }

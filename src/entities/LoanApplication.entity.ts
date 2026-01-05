@@ -4,12 +4,22 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from "typeorm";
+import { User } from "./User.entity";
 
 @Entity("loan_applications")
 export class LoanApplication {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
+
+  @Column({ name: "user_id", type: "uuid", nullable: true })
+  userId!: string | null;
+
+  @ManyToOne(() => User, (user) => user.loanApplications)
+  @JoinColumn({ name: "user_id" })
+  user!: User;
 
   @Column({ name: "loan_type", type: "text" })
   loanType!: string;
