@@ -128,26 +128,26 @@ export const login = async (req: Request, res: Response) => {
     // Set cookies
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure:
+        process.env.COOKIE_SAME_SITE === "none" ||
+        process.env.NODE_ENV === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      sameSite: process.env.NODE_ENV === "production" ? "lax" : undefined,
+      sameSite:
+        (process.env.COOKIE_SAME_SITE as "none" | "lax" | "strict") || "lax",
       path: "/",
-      domain:
-        process.env.NODE_ENV === "production"
-          ? process.env.COOKIE_DOMAIN
-          : undefined,
+      domain: process.env.COOKIE_DOMAIN,
     });
 
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure:
+        process.env.COOKIE_SAME_SITE === "none" ||
+        process.env.NODE_ENV === "production",
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      sameSite: process.env.NODE_ENV === "production" ? "lax" : undefined,
+      sameSite:
+        (process.env.COOKIE_SAME_SITE as "none" | "lax" | "strict") || "lax",
       path: "/api/auth/refresh-token",
-      domain:
-        process.env.NODE_ENV === "production"
-          ? process.env.COOKIE_DOMAIN
-          : undefined,
+      domain: process.env.COOKIE_DOMAIN,
     });
 
     logger.info({ email, userId: user.id }, "User logged in successfully");
@@ -212,14 +212,14 @@ export const refreshToken = async (req: Request, res: Response) => {
     // Set new access token cookie
     res.cookie("accessToken", newAccessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure:
+        process.env.COOKIE_SAME_SITE === "none" ||
+        process.env.NODE_ENV === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: process.env.NODE_ENV === "production" ? "lax" : undefined,
+      sameSite:
+        (process.env.COOKIE_SAME_SITE as "none" | "lax" | "strict") || "lax",
       path: "/",
-      domain:
-        process.env.NODE_ENV === "production"
-          ? process.env.COOKIE_DOMAIN
-          : undefined,
+      domain: process.env.COOKIE_DOMAIN,
     });
 
     logger.info({ userId: user.id }, "Access token refreshed");
@@ -256,24 +256,25 @@ export const logout = async (req: Request, res: Response) => {
     // Clear cookies
     res.clearCookie("accessToken", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "lax" : undefined,
+      secure:
+        process.env.COOKIE_SAME_SITE === "none" ||
+        process.env.NODE_ENV === "production",
+      sameSite:
+        (process.env.COOKIE_SAME_SITE as "none" | "lax" | "strict") || "lax",
       path: "/",
-      domain:
-        process.env.NODE_ENV === "production"
-          ? process.env.COOKIE_DOMAIN
-          : undefined,
+      domain: process.env.COOKIE_DOMAIN,
     });
 
     res.clearCookie("refreshToken", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "lax" : undefined,
+      secure:
+        process.env.COOKIE_SAME_SITE === "none" ||
+        process.env.NODE_ENV === "production",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      sameSite:
+        (process.env.COOKIE_SAME_SITE as "none" | "lax" | "strict") || "lax",
       path: "/api/auth/refresh-token",
-      domain:
-        process.env.NODE_ENV === "production"
-          ? process.env.COOKIE_DOMAIN
-          : undefined,
+      domain: process.env.COOKIE_DOMAIN,
     });
 
     logger.info("User logged out");
