@@ -28,10 +28,19 @@ export class UserStorage {
     return user || undefined;
   }
 
-  async upsertUser(userData: Partial<User> & Pick<User, "id">): Promise<User> {
-    const existing = await this.userRepo.findOne({
-      where: { id: userData.id },
-    });
+  async upsertUser(userData: Partial<User>): Promise<User> {
+    let existing: User | null = null;
+
+    if (userData.id) {
+      existing = await this.userRepo.findOne({
+        where: { id: userData.id },
+      });
+    } else if (userData.email) {
+      // Fallback check by email to avoid duplicates if ID isn't provided but user exists
+      existing = await this.userRepo.findOne({
+        where: { email: userData.email },
+      });
+    }
 
     if (existing) {
       Object.assign(existing, userData);

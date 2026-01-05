@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
 import { User } from "./entities/User.entity";
-import { Session } from "./entities/Session.entity";
+
 import { Property } from "./entities/Property.entity";
 import { LoanApplication } from "./entities/LoanApplication.entity";
 import { PropertyListing } from "./entities/PropertyListing.entity";
@@ -9,6 +9,7 @@ import { PropertyWatchlist } from "./entities/PropertyWatchlist.entity";
 import { PropertyOffer } from "./entities/PropertyOffer.entity";
 import { PropertyAlert } from "./entities/PropertyAlert.entity";
 import { Vendor } from "./entities/Vendor.entity";
+import { PropertyFavorite } from "./entities";
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -19,14 +20,15 @@ if (!process.env.DATABASE_URL) {
 export const AppDataSource = new DataSource({
   type: "postgres",
   url: process.env.DATABASE_URL,
-  synchronize: false, // Never auto-sync in production
+  synchronize: process.env.NODE_ENV !== "production",
   logging: process.env.NODE_ENV === "development",
   entities: [
     User,
-    Session,
+
     Property,
     LoanApplication,
     PropertyListing,
+    PropertyFavorite,
     PropertyWatchlist,
     PropertyOffer,
     PropertyAlert,

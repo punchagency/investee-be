@@ -1,3 +1,4 @@
+import axios from "axios";
 import { propertyStorage } from "../storage/property.storage";
 
 const RENTCAST_API_BASE = "https://api.rentcast.io/v1";
@@ -37,21 +38,23 @@ export async function enrichPropertyWithRentcast(
     }`;
     const encodedAddress = encodeURIComponent(fullAddress);
 
+    const requestConfig = {
+      headers: { Accept: "application/json", "X-Api-Key": apiKey },
+      validateStatus: () => true,
+    };
+
     const [propertyResponse, valueResponse, rentResponse] = await Promise.all([
-      fetch(`${RENTCAST_API_BASE}/properties?address=${encodedAddress}`, {
-        headers: { Accept: "application/json", "X-Api-Key": apiKey },
-      }),
-      fetch(
-        `${RENTCAST_API_BASE}/avm/value?address=${encodedAddress}&compCount=10`,
-        {
-          headers: { Accept: "application/json", "X-Api-Key": apiKey },
-        }
+      axios.get(
+        `${RENTCAST_API_BASE}/properties?address=${encodedAddress}`,
+        requestConfig
       ),
-      fetch(
+      axios.get(
+        `${RENTCAST_API_BASE}/avm/value?address=${encodedAddress}&compCount=10`,
+        requestConfig
+      ),
+      axios.get(
         `${RENTCAST_API_BASE}/avm/rent/long-term?address=${encodedAddress}&compCount=10`,
-        {
-          headers: { Accept: "application/json", "X-Api-Key": apiKey },
-        }
+        requestConfig
       ),
     ]);
 
@@ -65,8 +68,8 @@ export async function enrichPropertyWithRentcast(
 
     let propertyData: any = null;
     let taxHistory: any = null;
-    if (propertyResponse.ok) {
-      const propData = await propertyResponse.json();
+    if (propertyResponse.status === 200) {
+      const propData = propertyResponse.data;
       if (Array.isArray(propData) && propData.length > 0) {
         propertyData = propData[0];
         taxHistory = propertyData.taxAssessments || null;
@@ -77,8 +80,8 @@ export async function enrichPropertyWithRentcast(
     let valueLow: number | null = null;
     let valueHigh: number | null = null;
     let saleComps: any = null;
-    if (valueResponse.ok) {
-      const valueData = await valueResponse.json();
+    if (valueResponse.status === 200) {
+      const valueData: any = valueResponse.data;
       valueEstimate = valueData.price || null;
       valueLow = valueData.priceLow || null;
       valueHigh = valueData.priceHigh || null;
@@ -89,8 +92,8 @@ export async function enrichPropertyWithRentcast(
     let rentLow: number | null = null;
     let rentHigh: number | null = null;
     let rentComps: any = null;
-    if (rentResponse.ok) {
-      const rentData = await rentResponse.json();
+    if (rentResponse.status === 200) {
+      const rentData: any = rentResponse.data;
       rentEstimate = rentData.rent || null;
       rentLow = rentData.rentRangeLow || null;
       rentHigh = rentData.rentRangeHigh || null;
@@ -99,12 +102,12 @@ export async function enrichPropertyWithRentcast(
 
     let marketData: any = null;
     if (postalCode) {
-      const marketResponse = await fetch(
+      const marketResponse = await axios.get(
         `${RENTCAST_API_BASE}/markets?zipCode=${postalCode}`,
-        { headers: { Accept: "application/json", "X-Api-Key": apiKey } }
+        requestConfig
       );
-      if (marketResponse.ok) {
-        marketData = await marketResponse.json();
+      if (marketResponse.status === 200) {
+        marketData = marketResponse.data;
       }
     }
 
@@ -160,10 +163,11 @@ export async function getPropertyValueForAI(
     }`;
     const encodedAddress = encodeURIComponent(fullAddress);
 
-    const response = await fetch(
+    const response = await axios.get(
       `${RENTCAST_API_BASE}/avm/value?address=${encodedAddress}&compCount=10`,
       {
         headers: { Accept: "application/json", "X-Api-Key": apiKey },
+        validateStatus: () => true,
       }
     );
 
@@ -174,14 +178,14 @@ export async function getPropertyValueForAI(
       };
     }
 
-    if (!response.ok) {
+    if (response.status !== 200) {
       return {
         success: false,
         error: `API returned ${response.status}`,
       };
     }
 
-    const data = (await response.json()) as any;
+    const data = response.data as any;
 
     return {
       success: true,
@@ -195,15 +199,6 @@ export async function getPropertyValueForAI(
           data.priceLow && data.priceHigh
             ? `$${data.priceLow.toLocaleString()} - $${data.priceHigh.toLocaleString()}`
             : null,
-        comparablesCount: data.comparables?.length || 0,
-        comparables: data.comparables?.slice(0, 3).map((comp: any) => ({
-          address: comp.formattedAddress,
-          price: comp.price,
-          bedrooms: comp.bedrooms,
-          bathrooms: comp.bathrooms,
-          squareFeet: comp.squareFootage,
-          distance: comp.distance,
-        })),
       },
     };
   } catch (error) {
@@ -242,10 +237,11 @@ export async function getRentEstimateForAI(
     }`;
     const encodedAddress = encodeURIComponent(fullAddress);
 
-    const response = await fetch(
+    const response = await axios.get(
       `${RENTCAST_API_BASE}/avm/rent/long-term?address=${encodedAddress}&compCount=10`,
       {
         headers: { Accept: "application/json", "X-Api-Key": apiKey },
+        validateStatus: () => true,
       }
     );
 
@@ -256,14 +252,14 @@ export async function getRentEstimateForAI(
       };
     }
 
-    if (!response.ok) {
+    if (response.status !== 200) {
       return {
         success: false,
         error: `API returned ${response.status}`,
       };
     }
 
-    const data = (await response.json()) as any;
+    const data = response.data as any;
 
     return {
       success: true,
@@ -277,15 +273,6 @@ export async function getRentEstimateForAI(
           data.rentRangeLow && data.rentRangeHigh
             ? `$${data.rentRangeLow.toLocaleString()} - $${data.rentRangeHigh.toLocaleString()}`
             : null,
-        comparablesCount: data.comparables?.length || 0,
-        comparables: data.comparables?.slice(0, 3).map((comp: any) => ({
-          address: comp.formattedAddress,
-          rent: comp.price,
-          bedrooms: comp.bedrooms,
-          bathrooms: comp.bathrooms,
-          squareFeet: comp.squareFootage,
-          distance: comp.distance,
-        })),
       },
     };
   } catch (error) {
@@ -309,18 +296,19 @@ export async function getMarketOverviewForAI(zipCode: string): Promise<{
     return { success: false, error: "RentCast API key not configured" };
 
   try {
-    const response = await fetch(
+    const response = await axios.get(
       `${RENTCAST_API_BASE}/markets/sale/stats?zipCode=${zipCode}&historyRange=12`,
       {
         headers: { Accept: "application/json", "X-Api-Key": apiKey },
+        validateStatus: () => true,
       }
     );
 
-    if (!response.ok) {
+    if (response.status !== 200) {
       return { success: false, error: `API returned ${response.status}` };
     }
 
-    const data = (await response.json()) as any;
+    const data = response.data as any;
 
     return {
       success: true,
@@ -372,18 +360,19 @@ export async function searchActiveListingsForAI(
     if (minPrice) params.append("priceMin", minPrice.toString());
     if (maxPrice) params.append("priceMax", maxPrice.toString());
 
-    const response = await fetch(
+    const response = await axios.get(
       `${RENTCAST_API_BASE}/listings/sale?${params.toString()}`,
       {
         headers: { Accept: "application/json", "X-Api-Key": apiKey },
+        validateStatus: () => true,
       }
     );
 
-    if (!response.ok) {
+    if (response.status !== 200) {
       return { success: false, error: `API returned ${response.status}` };
     }
 
-    const data = (await response.json()) as any[];
+    const data = response.data as any[];
 
     return {
       success: true,
@@ -437,18 +426,19 @@ export async function searchPropertiesForAI(
     if (zipCode) params.append("zipCode", zipCode);
     if (propertyType) params.append("propertyType", propertyType);
 
-    const response = await fetch(
+    const response = await axios.get(
       `${RENTCAST_API_BASE}/properties?${params.toString()}`,
       {
         headers: { Accept: "application/json", "X-Api-Key": apiKey },
+        validateStatus: () => true,
       }
     );
 
-    if (!response.ok) {
+    if (response.status !== 200) {
       return { success: false, error: `API returned ${response.status}` };
     }
 
-    const data = (await response.json()) as any[];
+    const data = response.data as any[];
 
     return {
       success: true,

@@ -31,8 +31,8 @@ export class PropertyStorage {
     return property || undefined;
   }
 
-  async getAllProperties(): Promise<Property[]> {
-    return await this.propertyRepo.find({
+  async getAllProperties(): Promise<[Property[], number]> {
+    return await this.propertyRepo.findAndCount({
       order: { createdAt: "DESC" },
     });
   }
@@ -95,21 +95,7 @@ export class PropertyStorage {
     if (params.minSqFt) where.sqFt = MoreThanOrEqual(params.minSqFt);
     if (params.maxSqFt) where.sqFt = LessThanOrEqual(params.maxSqFt);
 
-    // If a generic query is provided, search address or city
-    // Note: Numeric filters are applied to the OR query effectively by TypeORM if we structure it right,
-    // but mixing OR for text with AND for numbers can be tricky in simple objects.
-    // For simplicity, if query is present, we'll prioritize it or try to combine.
-    // A simple 'find' with array of objects works as OR. To mix AND (numeric) with OR (text),
-    // we need QueryBuilder or careful structure.
-
-    // For this agent iteration, let's keep it simple:
-    // If query is present, we ONLY do text search. If strict filters provided, we use the specific fields.
-    // The Agent is smart enough to use 'city' param instead of generic query if it wants filters.
-
     if (params.query) {
-      // If mixed query + filters are needed, we really should use query builder.
-      // But for now, let's prioritize the specific fields if they exist,
-      // and only fallback to generic query if NO specific location params are given.
       if (!params.city && !params.state && !params.zipCode) {
         return await this.propertyRepo.find({
           where: [

@@ -6,6 +6,7 @@ import { Property } from "../entities/Property.entity";
 import XLSX from "xlsx";
 import * as fs from "fs";
 import * as path from "path";
+import axios from "axios";
 
 const ATTOM_API_BASE = "https://api.gateway.attomdata.com/propertyapi/v1.0.0";
 
@@ -25,7 +26,7 @@ export const searchProperty = async (req: Request, res: Response) => {
       return;
     }
 
-    const response = await fetch(
+    const response = await axios.get(
       `${ATTOM_API_BASE}/property/basicprofile?address=${encodeURIComponent(
         address
       )}`,
@@ -34,10 +35,11 @@ export const searchProperty = async (req: Request, res: Response) => {
           Accept: "application/json",
           apikey: apiKey,
         },
+        validateStatus: () => true,
       }
     );
 
-    if (!response.ok) {
+    if (response.status !== 200) {
       if (response.status === 404) {
         res.status(404).json({ error: "Property not found" });
         return;
@@ -45,8 +47,7 @@ export const searchProperty = async (req: Request, res: Response) => {
       throw new Error(`ATTOM API returned ${response.status}`);
     }
 
-    const data = await response.json();
-    res.json(data);
+    res.json(response.data);
   } catch (error) {
     console.error("Error searching property:", error);
     res.status(500).json({ error: "Failed to search property" });
@@ -76,19 +77,19 @@ export const searchPropertiesByRadius = async (req: Request, res: Response) => {
     if (maxbeds) url += `&maxbeds=${maxbeds}`;
     if (propertytype) url += `&propertytype=${propertytype}`;
 
-    const response = await fetch(url, {
+    const response = await axios.get(url, {
       headers: {
         Accept: "application/json",
         apikey: apiKey,
       },
+      validateStatus: () => true,
     });
 
-    if (!response.ok) {
+    if (response.status !== 200) {
       throw new Error(`ATTOM API returned ${response.status}`);
     }
 
-    const data = await response.json();
-    res.json(data);
+    res.json(response.data);
   } catch (error) {
     console.error("Error searching properties by radius:", error);
     res.status(500).json({ error: "Failed to search properties" });
@@ -98,8 +99,8 @@ export const searchPropertiesByRadius = async (req: Request, res: Response) => {
 // Get all properties
 export const getAllProperties = async (req: Request, res: Response) => {
   try {
-    const allProperties = await propertyStorage.getAllProperties();
-    res.json(allProperties);
+    const [allProperties, count] = await propertyStorage.getAllProperties();
+    res.json({ properties: allProperties, total: count });
   } catch (error) {
     console.error("Error fetching properties:", error);
     res.status(500).json({ error: "Failed to fetch properties" });
@@ -216,9 +217,10 @@ export const enrichPropertiesWithAttom = async (
   try {
     const { force } = req.body || {};
     let toEnrich;
+    let total;
 
     if (force) {
-      toEnrich = await propertyStorage.getAllProperties();
+      [toEnrich, total] = await propertyStorage.getAllProperties();
     } else {
       const pendingProperties = await propertyStorage.getPropertiesByStatus(
         "pending"
@@ -227,9 +229,10 @@ export const enrichPropertiesWithAttom = async (
         "rate_limited"
       );
       toEnrich = [...pendingProperties, ...rateLimitedProperties];
+      total = toEnrich.length;
     }
 
-    if (toEnrich.length === 0) {
+    if (total === 0) {
       res.json({
         success: true,
         message: "No properties to enrich",
@@ -349,7 +352,7 @@ export const enrichPropertiesWithRentcast = async (
       return;
     }
 
-    const allProperties = await propertyStorage.getAllProperties();
+    const [allProperties, total] = await propertyStorage.getAllProperties();
     const toEnrich = allProperties
       .filter((p) => p.rentcastStatus !== "success")
       .slice(0, remainingSlots);
@@ -390,3 +393,4 @@ export const enrichPropertiesWithRentcast = async (
     res.status(500).json({ error: "Failed to batch enrich with RentCast" });
   }
 };
+77;

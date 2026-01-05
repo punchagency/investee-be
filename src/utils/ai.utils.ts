@@ -202,9 +202,13 @@ export async function executeTool(
           sqft: p.sqFt,
           type: p.propertyType,
           owner: p.owner, // Expose owner info from local DB
-          mapUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-            `${p.address}, ${p.city}, ${p.state}`
-          )}`,
+          mapUrl: `${
+            process.env.FRONTEND_URL
+              ? `${process.env.FRONTEND_URL}/property/${p.id}`
+              : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  `${p.address}, ${p.city}, ${p.state}`
+                )}`
+          }`,
         }));
       }
 

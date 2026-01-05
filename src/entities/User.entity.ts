@@ -1,15 +1,17 @@
 import {
   Entity,
-  PrimaryColumn,
   Column,
   Index,
   CreateDateColumn,
   UpdateDateColumn,
+  PrimaryGeneratedColumn,
+  OneToMany,
 } from "typeorm";
+import { PropertyFavorite } from "./PropertyFavorite.entity";
 
 @Entity("users")
 export class User {
-  @PrimaryColumn("varchar")
+  @PrimaryGeneratedColumn("uuid")
   id!: string;
 
   @Column({ type: "varchar", unique: true, nullable: true })
@@ -35,4 +37,7 @@ export class User {
 
   @UpdateDateColumn({ name: "updated_at" })
   updatedAt!: Date;
+
+  @OneToMany(() => PropertyFavorite, (favorite) => favorite.user)
+  favorites!: PropertyFavorite[];
 }

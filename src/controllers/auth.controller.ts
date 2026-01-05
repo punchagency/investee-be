@@ -4,6 +4,7 @@ import { userStorage } from "../storage/user.storage";
 import {
   generateAccessToken,
   generateRefreshToken,
+  verifyAccessToken,
   verifyRefreshToken,
 } from "../utils/jwt";
 import logger from "../utils/logger";
@@ -41,7 +42,7 @@ export const register = async (req: Request, res: Response) => {
 
     // Create user
     const user = await userStorage.upsertUser({
-      id: email, // Using email as ID
+      // id will be auto-generated
       email,
       password: hashedPassword,
       firstName: firstName || null,
@@ -302,7 +303,7 @@ export const getCurrentUser = async (req: Request, res: Response) => {
       });
     }
 
-    const decoded = verifyRefreshToken(token);
+    const decoded = verifyAccessToken(token);
     const user = await userStorage.getUser(decoded.userId);
 
     if (user) {

@@ -4,7 +4,9 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from "typeorm";
+import { PropertyFavorite } from "./PropertyFavorite.entity";
 
 @Entity("properties")
 export class Property {
@@ -169,4 +171,7 @@ export class Property {
 
   @UpdateDateColumn({ name: "updated_at" })
   updatedAt!: Date;
+
+  @OneToMany(() => PropertyFavorite, (favorite) => favorite.property)
+  favorites!: PropertyFavorite[];
 }

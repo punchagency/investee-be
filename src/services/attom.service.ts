@@ -1,3 +1,4 @@
+import axios from "axios";
 import { propertyStorage } from "../storage/property.storage";
 
 const ATTOM_API_BASE = "https://api.gateway.attomdata.com/propertyapi/v1.0.0";
@@ -25,33 +26,23 @@ export async function enrichPropertyWithAttom(
     const address1 = encodeURIComponent(address);
     const address2 = encodeURIComponent(`${city}, ${state}`);
 
+    const requestConfig = {
+      headers: { Accept: "application/json", apikey: apiKey },
+      validateStatus: () => true,
+    };
+
     const [basicResponse, assessmentResponse, avmResponse] = await Promise.all([
-      fetch(
+      axios.get(
         `${ATTOM_API_BASE}/property/basicprofile?address1=${address1}&address2=${address2}`,
-        {
-          headers: {
-            Accept: "application/json",
-            apikey: apiKey,
-          },
-        }
+        requestConfig
       ),
-      fetch(
+      axios.get(
         `${ATTOM_API_BASE}/assessment/detail?address1=${address1}&address2=${address2}`,
-        {
-          headers: {
-            Accept: "application/json",
-            apikey: apiKey,
-          },
-        }
+        requestConfig
       ),
-      fetch(
+      axios.get(
         `${ATTOM_API_BASE}/attomavm/detail?address1=${address1}&address2=${address2}`,
-        {
-          headers: {
-            Accept: "application/json",
-            apikey: apiKey,
-          },
-        }
+        requestConfig
       ),
     ]);
 
@@ -63,7 +54,7 @@ export async function enrichPropertyWithAttom(
       return;
     }
 
-    if (!basicResponse.ok) {
+    if (basicResponse.status !== 200) {
       await propertyStorage.updateProperty(propertyId, {
         attomStatus: "failed",
         attomError: `API returned ${basicResponse.status}`,
@@ -71,7 +62,7 @@ export async function enrichPropertyWithAttom(
       return;
     }
 
-    const basicData = (await basicResponse.json()) as any;
+    const basicData = basicResponse.data as any;
     const prop = basicData.property?.[0];
 
     if (!prop) {
@@ -85,8 +76,8 @@ export async function enrichPropertyWithAttom(
     let annualTaxes: number | null = null;
     let attomTaxAmount: number | null = null;
     let attomTaxYear: number | null = null;
-    if (assessmentResponse.ok) {
-      const assessmentData = (await assessmentResponse.json()) as any;
+    if (assessmentResponse.status === 200) {
+      const assessmentData = assessmentResponse.data as any;
       const assessment = assessmentData.property?.[0]?.assessment;
       if (assessment?.tax?.taxamt) {
         annualTaxes = Math.round(assessment.tax.taxamt);
@@ -99,8 +90,8 @@ export async function enrichPropertyWithAttom(
     let attomAvmHigh: number | null = null;
     let attomAvmLow: number | null = null;
     let attomAvmConfidence: number | null = null;
-    if (avmResponse.ok) {
-      const avmData = (await avmResponse.json()) as any;
+    if (avmResponse.status === 200) {
+      const avmData = avmResponse.data as any;
       const avm = avmData.property?.[0]?.avm?.amount;
       if (avm) {
         attomAvmValue = avm.value || null;
@@ -170,33 +161,23 @@ export async function getPropertyDetailsForAI(
     const address1 = encodeURIComponent(address);
     const address2 = encodeURIComponent(`${city}, ${state}`);
 
+    const requestConfig = {
+      headers: { Accept: "application/json", apikey: apiKey },
+      validateStatus: () => true,
+    };
+
     const [basicResponse, assessmentResponse, avmResponse] = await Promise.all([
-      fetch(
+      axios.get(
         `${ATTOM_API_BASE}/property/basicprofile?address1=${address1}&address2=${address2}`,
-        {
-          headers: {
-            Accept: "application/json",
-            apikey: apiKey,
-          },
-        }
+        requestConfig
       ),
-      fetch(
+      axios.get(
         `${ATTOM_API_BASE}/assessment/detail?address1=${address1}&address2=${address2}`,
-        {
-          headers: {
-            Accept: "application/json",
-            apikey: apiKey,
-          },
-        }
+        requestConfig
       ),
-      fetch(
+      axios.get(
         `${ATTOM_API_BASE}/attomavm/detail?address1=${address1}&address2=${address2}`,
-        {
-          headers: {
-            Accept: "application/json",
-            apikey: apiKey,
-          },
-        }
+        requestConfig
       ),
     ]);
 
@@ -207,14 +188,14 @@ export async function getPropertyDetailsForAI(
       };
     }
 
-    if (!basicResponse.ok) {
+    if (basicResponse.status !== 200) {
       return {
         success: false,
         error: `API returned ${basicResponse.status}`,
       };
     }
 
-    const basicData = (await basicResponse.json()) as any;
+    const basicData = basicResponse.data as any;
     const prop = basicData.property?.[0];
 
     if (!prop) {
@@ -227,8 +208,8 @@ export async function getPropertyDetailsForAI(
     // Parse assessment data
     let annualTaxes: number | null = null;
     let taxYear: number | null = null;
-    if (assessmentResponse.ok) {
-      const assessmentData = (await assessmentResponse.json()) as any;
+    if (assessmentResponse.status === 200) {
+      const assessmentData = assessmentResponse.data as any;
       const assessment = assessmentData.property?.[0]?.assessment;
       if (assessment?.tax?.taxamt) {
         annualTaxes = Math.round(assessment.tax.taxamt);
@@ -241,8 +222,8 @@ export async function getPropertyDetailsForAI(
     let avmHigh: number | null = null;
     let avmLow: number | null = null;
     let avmConfidence: number | null = null;
-    if (avmResponse.ok) {
-      const avmData = (await avmResponse.json()) as any;
+    if (avmResponse.status === 200) {
+      const avmData = avmResponse.data as any;
       const avm = avmData.property?.[0]?.avm?.amount;
       if (avm) {
         avmValue = avm.value || null;

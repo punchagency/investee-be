@@ -5,13 +5,14 @@
     "license": "MIT",
     "scripts": {
         "dev": "tsx watch src/index.ts",
-        "build": "tsx script/build.ts",
+        "build": "tsc",
         "seed": "tsx scripts/import-properties.ts",
         "start": "NODE_ENV=production node dist/index.cjs",
         "check": "tsc",
         "typeorm": "typeorm-ts-node-commonjs"
     },
     "dependencies": {
+        "axios": "^1.13.2",
         "bcryptjs": "^3.0.3",
         "compression": "^1.8.1",
         "connect-pg-simple": "^10.0.0",
