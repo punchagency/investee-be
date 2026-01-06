@@ -191,7 +191,7 @@ export async function getPropertyValueForAI(
       success: true,
       data: {
         address: fullAddress,
-        mapUrl: generateGoogleMapsUrl(address, city, state),
+        propertyUrl: generateGoogleMapsUrl(address, city, state),
         estimatedValue: data.price || null,
         valueLow: data.priceLow || null,
         valueHigh: data.priceHigh || null,
@@ -265,7 +265,7 @@ export async function getRentEstimateForAI(
       success: true,
       data: {
         address: fullAddress,
-        mapUrl: generateGoogleMapsUrl(address, city, state),
+        propertyUrl: generateGoogleMapsUrl(address, city, state),
         estimatedRent: data.rent || null,
         rentLow: data.rentRangeLow || null,
         rentHigh: data.rentRangeHigh || null,
@@ -380,7 +380,7 @@ export async function searchActiveListingsForAI(
         count: data.length,
         listings: data.map((l) => ({
           address: l.formattedAddress,
-          mapUrl: generateGoogleMapsUrl(l.formattedAddress),
+          propertyUrl: generateGoogleMapsUrl(l.formattedAddress),
           price: l.price,
           daysOnMarket: l.daysOnMarket,
           headline: l.headline,
@@ -446,7 +446,7 @@ export async function searchPropertiesForAI(
         count: data.length,
         properties: data.map((p) => ({
           address: p.formattedAddress,
-          mapUrl: generateGoogleMapsUrl(p.formattedAddress),
+          propertyUrl: generateGoogleMapsUrl(p.formattedAddress),
           city: p.city,
           state: p.state,
           zip: p.zipCode,

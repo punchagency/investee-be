@@ -238,7 +238,7 @@ export async function getPropertyDetailsForAI(
       success: true,
       data: {
         address: `${address}, ${city}, ${state}`,
-        mapUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        propertyUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
           `${address}, ${city}, ${state}`
         )}`,
         marketValue:
