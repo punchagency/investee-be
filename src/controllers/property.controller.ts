@@ -99,7 +99,42 @@ export const searchPropertiesByRadius = async (req: Request, res: Response) => {
 // Get all properties
 export const getAllProperties = async (req: Request, res: Response) => {
   try {
-    const [allProperties, count] = await propertyStorage.getAllProperties();
+    const {
+      query,
+      search,
+      city,
+      state,
+      zipCode,
+      minPrice,
+      maxPrice,
+      minBeds,
+      maxBeds,
+      minBaths,
+      maxBaths,
+      minSqFt,
+      maxSqFt,
+      limit,
+      offset,
+    } = req.query as any;
+
+    const [allProperties, count] = await propertyStorage.getAllProperties({
+      query:
+        (search ? String(search) : undefined) ||
+        (query ? String(query) : undefined),
+      city: city ? String(city) : undefined,
+      state: state ? String(state) : undefined,
+      zipCode: zipCode ? String(zipCode) : undefined,
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
+      minBeds: minBeds ? Number(minBeds) : undefined,
+      maxBeds: maxBeds ? Number(maxBeds) : undefined,
+      minBaths: minBaths ? Number(minBaths) : undefined,
+      maxBaths: maxBaths ? Number(maxBaths) : undefined,
+      minSqFt: minSqFt ? Number(minSqFt) : undefined,
+      maxSqFt: maxSqFt ? Number(maxSqFt) : undefined,
+      limit: limit ? Number(limit) : undefined,
+      offset: offset ? Number(offset) : undefined,
+    });
     res.json({ properties: allProperties, total: count });
   } catch (error) {
     console.error("Error fetching properties:", error);
@@ -393,4 +428,3 @@ export const enrichPropertiesWithRentcast = async (
     res.status(500).json({ error: "Failed to batch enrich with RentCast" });
   }
 };
-77;

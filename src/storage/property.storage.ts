@@ -31,10 +31,87 @@ export class PropertyStorage {
     return property || undefined;
   }
 
-  async getAllProperties(): Promise<[Property[], number]> {
-    return await this.propertyRepo.findAndCount({
-      order: { createdAt: "DESC" },
-    });
+  async getAllProperties(params?: {
+    query?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    minPrice?: number;
+    maxPrice?: number;
+    minBeds?: number;
+    maxBeds?: number;
+    minBaths?: number;
+    maxBaths?: number;
+    minSqFt?: number;
+    maxSqFt?: number;
+    limit?: number;
+    offset?: number;
+  }): Promise<[Property[], number]> {
+    const qb = this.propertyRepo.createQueryBuilder("property");
+
+    if (params) {
+      if (params.city)
+        qb.andWhere("property.city ILIKE :city", { city: `%${params.city}%` });
+      if (params.state)
+        qb.andWhere("property.state ILIKE :state", {
+          state: `%${params.state}%`,
+        });
+      if (params.zipCode)
+        qb.andWhere("property.postalCode ILIKE :zipCode", {
+          zipCode: `%${params.zipCode}%`,
+        });
+
+      // Numeric filters
+      if (params.minPrice)
+        qb.andWhere("property.estValue >= :minPrice", {
+          minPrice: params.minPrice,
+        });
+      if (params.maxPrice)
+        qb.andWhere("property.estValue <= :maxPrice", {
+          maxPrice: params.maxPrice,
+        });
+
+      if (params.minBeds)
+        qb.andWhere("property.beds >= :minBeds", { minBeds: params.minBeds });
+      if (params.maxBeds)
+        qb.andWhere("property.beds <= :maxBeds", { maxBeds: params.maxBeds });
+
+      if (params.minBaths)
+        qb.andWhere("property.baths >= :minBaths", {
+          minBaths: params.minBaths,
+        });
+      if (params.maxBaths)
+        qb.andWhere("property.baths <= :maxBaths", {
+          maxBaths: params.maxBaths,
+        });
+
+      if (params.minSqFt)
+        qb.andWhere("property.sqFt >= :minSqFt", { minSqFt: params.minSqFt });
+      if (params.maxSqFt)
+        qb.andWhere("property.sqFt <= :maxSqFt", { maxSqFt: params.maxSqFt });
+
+      if (params.query) {
+        const sanitizedQuery = params.query
+          .replace(/[^\w\s]/g, "")
+          .trim()
+          .split(/\s+/)
+          .map((word) => `${word}:*`)
+          .join(" & ");
+
+        if (sanitizedQuery) {
+          qb.andWhere(
+            `to_tsvector('english', coalesce(property.address, '') || ' ' || coalesce(property.city, '') || ' ' || coalesce(property.owner, '')) @@ to_tsquery('english', :ftsQuery)`,
+            { ftsQuery: sanitizedQuery }
+          );
+        }
+      }
+    }
+
+    qb.orderBy("property.createdAt", "DESC");
+    qb.take(params?.limit ?? 10);
+    qb.skip(params?.offset ?? 0);
+
+    return await qb.getManyAndCount();
   }
 
   async getPropertiesByStatus(status: string): Promise<Property[]> {
@@ -59,59 +136,6 @@ export class PropertyStorage {
   async countRentcastSyncedProperties(): Promise<number> {
     return await this.propertyRepo.count({
       where: { rentcastStatus: "success" },
-    });
-  }
-
-  async searchProperties(params: {
-    query?: string;
-    city?: string;
-    state?: string;
-    zipCode?: string;
-    minPrice?: number;
-    maxPrice?: number;
-    minBeds?: number;
-    maxBeds?: number;
-    minBaths?: number;
-    maxBaths?: number;
-    minSqFt?: number;
-    maxSqFt?: number;
-  }): Promise<Property[]> {
-    const where: any = {};
-
-    if (params.city) where.city = ILike(`%${params.city}%`);
-    if (params.state) where.state = ILike(`%${params.state}%`);
-    if (params.zipCode) where.postalCode = ILike(`%${params.zipCode}%`);
-
-    // Numeric filters
-    if (params.minPrice) where.estValue = MoreThanOrEqual(params.minPrice);
-    if (params.maxPrice) where.estValue = LessThanOrEqual(params.maxPrice);
-
-    if (params.minBeds) where.beds = MoreThanOrEqual(params.minBeds);
-    if (params.maxBeds) where.beds = LessThanOrEqual(params.maxBeds);
-
-    if (params.minBaths) where.baths = MoreThanOrEqual(params.minBaths);
-    if (params.maxBaths) where.baths = LessThanOrEqual(params.maxBaths);
-
-    if (params.minSqFt) where.sqFt = MoreThanOrEqual(params.minSqFt);
-    if (params.maxSqFt) where.sqFt = LessThanOrEqual(params.maxSqFt);
-
-    if (params.query) {
-      if (!params.city && !params.state && !params.zipCode) {
-        return await this.propertyRepo.find({
-          where: [
-            { address: ILike(`%${params.query}%`) },
-            { city: ILike(`%${params.query}%`) },
-          ],
-          take: 10,
-          order: { createdAt: "DESC" },
-        });
-      }
-    }
-
-    return await this.propertyRepo.find({
-      where,
-      take: 10,
-      order: { createdAt: "DESC" },
     });
   }
 }

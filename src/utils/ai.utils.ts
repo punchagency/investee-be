@@ -97,7 +97,8 @@ export const AI_TOOLS = [
         properties: {
           query: {
             type: "string",
-            description: "General search term (address or partial city)",
+            description:
+              "Full text search term (matches address, city, or owner)",
           },
           city: {
             type: "string",
@@ -116,6 +117,14 @@ export const AI_TOOLS = [
           maxBaths: { type: "number", description: "Maximum bathrooms" },
           minSqFt: { type: "number", description: "Minimum square footage" },
           maxSqFt: { type: "number", description: "Maximum square footage" },
+          limit: {
+            type: "number",
+            description: "Number of properties to return (default 10)",
+          },
+          offset: {
+            type: "number",
+            description: "Number of properties to skip (default 0)",
+          },
         },
         required: [],
       },
@@ -168,7 +177,8 @@ export async function executeTool(
       }
 
       case "search_local_properties": {
-        const properties = await propertyStorage.searchProperties({
+        // getAllProperties returns [properties, count]
+        const [properties] = await propertyStorage.getAllProperties({
           query: args.query,
           city: args.city,
           state: args.state,
@@ -181,6 +191,8 @@ export async function executeTool(
           maxBaths: args.maxBaths,
           minSqFt: args.minSqFt,
           maxSqFt: args.maxSqFt,
+          limit: args.limit,
+          offset: args.offset,
         });
 
         if (properties.length === 0) {
@@ -202,7 +214,7 @@ export async function executeTool(
           sqft: p.sqFt,
           type: p.propertyType,
           owner: p.owner, // Expose owner info from local DB
-          mapUrl: `${
+          propertyUrl: `${
             process.env.FRONTEND_URL
               ? `${process.env.FRONTEND_URL}/property/${p.id}`
               : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
