@@ -8,6 +8,7 @@ import morgan from "morgan";
 
 import { initializeDatabase } from "./db";
 import logger from "./utils/logger";
+import { requestLogger } from "./utils/request.logger";
 import authRoutes from "./routes/auth.routes";
 import configRoutes from "./routes/config.routes";
 import loanApplicationRoutes from "./routes/loan-application.routes";
@@ -69,15 +70,6 @@ if (NODE_ENV === "production") {
   };
 }
 
-const morganFormat = NODE_ENV === "production" ? "combined" : "dev";
-app.use(
-  morgan(morganFormat, {
-    stream: {
-      write: (message: string) => logger.info(message.trim()),
-    },
-  })
-);
-
 // Middleware
 app.use(cors(corsOptions));
 app.use(
@@ -87,9 +79,18 @@ app.use(
 );
 app.set("trust proxy", 1);
 app.use(cookieParser());
-app.use(compression());
+app.use(
+  compression({
+    filter: (req, res) => {
+      if (req.path.includes("/api/ai/chat")) return false;
+      return compression.filter(req, res);
+    },
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(requestLogger);
 
 // API Routes
 app.use("/api", authRoutes);

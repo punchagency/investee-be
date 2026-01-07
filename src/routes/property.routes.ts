@@ -10,6 +10,7 @@ import {
   enrichPropertyWithAttomById,
   enrichPropertyWithRentcastById,
   enrichPropertiesWithRentcast,
+  getPropertiesBasedOnUserLocation,
 } from "../controllers/property.controller";
 
 const router = express.Router();
@@ -17,6 +18,7 @@ const router = express.Router();
 // ATTOM API proxies
 router.get("/property/search", searchProperty);
 router.get("/property/radius", searchPropertiesByRadius);
+router.get("/properties/by-location", getPropertiesBasedOnUserLocation);
 
 // Property CRUD
 router.get("/properties", getAllProperties);

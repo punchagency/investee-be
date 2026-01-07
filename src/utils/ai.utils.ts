@@ -119,11 +119,21 @@ export const AI_TOOLS = [
           maxSqFt: { type: "number", description: "Maximum square footage" },
           limit: {
             type: "number",
-            description: "Number of properties to return (default 10)",
+            description: "Number of properties to return (default 5)",
           },
           offset: {
             type: "number",
             description: "Number of properties to skip (default 0)",
+          },
+          orderBy: {
+            type: "string",
+            enum: ["estValue", "createdAt", "beds", "baths", "sqFt"],
+            description: "Field to sort by (default: createdAt)",
+          },
+          orderDirection: {
+            type: "string",
+            enum: ["ASC", "DESC"],
+            description: "Sort direction (default: DESC)",
           },
         },
         required: [],
@@ -191,8 +201,24 @@ export async function executeTool(
           maxBaths: args.maxBaths,
           minSqFt: args.minSqFt,
           maxSqFt: args.maxSqFt,
-          limit: args.limit,
+          limit: args.limit || 5,
           offset: args.offset,
+          skipCount: true,
+          orderBy: args.orderBy,
+          orderDirection: args.orderDirection,
+          select: [
+            "id",
+            "address",
+            "city",
+            "state",
+            "postalCode",
+            "estValue",
+            "beds",
+            "baths",
+            "sqFt",
+            "propertyType",
+            "owner",
+          ],
         });
 
         if (properties.length === 0) {

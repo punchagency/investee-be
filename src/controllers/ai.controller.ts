@@ -34,15 +34,27 @@ export const createChatCompletion = async (req: Request, res: Response) => {
       return;
     }
 
-    const response = await generateAgentChatCompletion(messages);
-    res.json({ response });
+    // Set headers for streaming
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("Transfer-Encoding", "chunked");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.flushHeaders(); // Helper to send headers immediately
+
+    await generateAgentChatCompletion(messages, res);
+    res.end();
   } catch (error) {
     console.error("AI chat completion error:", error);
-    res.status(500).json({
-      error:
-        error instanceof Error
-          ? error.message
-          : "Failed to generate chat completion",
-    });
+    if (!res.headersSent) {
+      res.status(500).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to generate chat completion",
+      });
+    } else {
+      res.end();
+    }
   }
 };
