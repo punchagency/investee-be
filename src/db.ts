@@ -11,7 +11,7 @@ import { PropertyAlert } from "./entities/PropertyAlert.entity";
 import { Vendor } from "./entities/Vendor.entity";
 import { PropertyFavorite } from "./entities";
 
-if (!process.env.PROD_DATABASE_URL) {
+if (!process.env.DATABASE_URL) {
   throw new Error(
     "DATABASE_URL must be set. Did you forget to provision a database?"
   );
