@@ -11,7 +11,7 @@ import { PropertyAlert } from "./entities/PropertyAlert.entity";
 import { Vendor } from "./entities/Vendor.entity";
 import { PropertyFavorite } from "./entities";
 
-if (!process.env.DATABASE_URL) {
+if (!process.env.PROD_DATABASE_URL) {
   throw new Error(
     "DATABASE_URL must be set. Did you forget to provision a database?"
   );
@@ -40,6 +40,18 @@ export const initializeDatabase = async () => {
   try {
     await AppDataSource.initialize();
     console.log("Database connection initialized successfully");
+
+    // Ensure Full Text Search Index exists
+    await AppDataSource.query(`
+      CREATE INDEX IF NOT EXISTS idx_property_fts ON properties
+      USING GIN (to_tsvector('english', coalesce(address, '') || ' ' || coalesce(city, '') || ' ' || coalesce(owner, '')));
+    `);
+
+    // Add indexes for specific filters (City = FTS for flexible search, State = Composite for speed/sorting)
+    await AppDataSource.query(`
+      CREATE INDEX IF NOT EXISTS idx_property_state_created_at ON properties (state, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_property_city_fts ON properties USING GIN (to_tsvector('english', coalesce(city, '')));
+    `);
   } catch (error) {
     console.error("Error initializing database:", error);
     throw error;

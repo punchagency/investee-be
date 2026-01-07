@@ -428,3 +428,41 @@ export const enrichPropertiesWithRentcast = async (
     res.status(500).json({ error: "Failed to batch enrich with RentCast" });
   }
 };
+
+// Get properties based on user location (IP/Geo)
+export const getPropertiesBasedOnUserLocation = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const location = req.location;
+
+    if (!location) {
+      // If no location found, return empty list or maybe defaults
+      // For now, return empty to indicate no location context
+      res.json({
+        properties: [],
+        location: null,
+        message: "No location data available",
+      });
+      return;
+    }
+
+    const { city, region } = location;
+    // region usually maps to state code like 'CA' or 'NY' in geoip-lite for US
+    // city is 'City Name'
+
+    const property = await propertyStorage.getPropertyByLocation(
+      city === "Unknown" ? undefined : city,
+      region === "Unknown" ? undefined : region
+    );
+
+    res.json({
+      property,
+      found: !!property,
+    });
+  } catch (error) {
+    console.error("Error fetching properties by location:", error);
+    res.status(500).json({ error: "Failed to fetch properties by location" });
+  }
+};

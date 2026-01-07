@@ -2,6 +2,8 @@ import { AppDataSource } from "../db";
 import { Repository, ILike, MoreThanOrEqual, LessThanOrEqual } from "typeorm";
 import { Property } from "../entities/Property.entity";
 
+type PropertyKeys = keyof Property;
+
 export class PropertyStorage {
   private propertyRepo: Repository<Property>;
 
@@ -46,15 +48,31 @@ export class PropertyStorage {
     maxSqFt?: number;
     limit?: number;
     offset?: number;
+    select?: PropertyKeys[];
+    skipCount?: boolean;
+    orderBy?: PropertyKeys;
+    orderDirection?: "ASC" | "DESC";
   }): Promise<[Property[], number]> {
     const qb = this.propertyRepo.createQueryBuilder("property");
-
+    if (params?.select) {
+      qb.select(params.select.map((field) => `property.${field}`));
+    }
     if (params) {
-      if (params.city)
-        qb.andWhere("property.city ILIKE :city", { city: `%${params.city}%` });
+      if (params.city) {
+        const sanitizedCity = params.city
+          .replace(/[^\w\s]/g, "")
+          .trim()
+          .split(/\s+/)
+          .join(" & ");
+
+        qb.andWhere(
+          "to_tsvector('english', property.city) @@ to_tsquery('english', :city)",
+          { city: `${sanitizedCity}:*` }
+        );
+      }
       if (params.state)
-        qb.andWhere("property.state ILIKE :state", {
-          state: `%${params.state}%`,
+        qb.andWhere("property.state = :state", {
+          state: params.state,
         });
       if (params.zipCode)
         qb.andWhere("property.postalCode ILIKE :zipCode", {
@@ -107,9 +125,19 @@ export class PropertyStorage {
       }
     }
 
-    qb.orderBy("property.createdAt", "DESC");
+    // Default sort is createdAt DESC, but allow override
+    const sortField = params?.orderBy
+      ? `property.${params.orderBy}`
+      : "property.createdAt";
+    const sortDir = params?.orderDirection ?? "DESC";
+    qb.orderBy(sortField, sortDir);
+
     qb.take(params?.limit ?? 10);
     qb.skip(params?.offset ?? 0);
+
+    if (params?.skipCount) {
+      return [await qb.getMany(), 0];
+    }
 
     return await qb.getManyAndCount();
   }
@@ -137,6 +165,39 @@ export class PropertyStorage {
     return await this.propertyRepo.count({
       where: { rentcastStatus: "success" },
     });
+  }
+
+  async getPropertyByLocation(
+    city?: string,
+    state?: string
+  ): Promise<Property | null> {
+    const qb = this.propertyRepo.createQueryBuilder("property");
+
+    if (!city && !state) {
+      return null;
+    }
+
+    qb.where("1 = 0");
+
+    if (city) {
+      const sanitizedCity = city.replace(/[^\w\s]/g, "").trim();
+      if (sanitizedCity) {
+        qb.orWhere("property.city ILIKE :city", { city: `%${sanitizedCity}%` });
+      }
+    }
+
+    if (state) {
+      const sanitizedState = state.replace(/[^\w\s]/g, "").trim();
+      if (sanitizedState) {
+        qb.orWhere("property.state ILIKE :state", {
+          state: `%${sanitizedState}%`,
+        });
+      }
+    }
+
+    qb.orderBy("property.createdAt", "DESC");
+
+    return await qb.getOne();
   }
 }
 

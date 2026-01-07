@@ -41,7 +41,8 @@ Key Constraint: Never provide legal, tax, or financial advice. Always recommend 
 **ALWAYS search the local Investee marketplace first** using the 'search_local_properties' tool. Do NOT assume properties exist unless you find them in the database.
 - Use explicit filters (city, minPrice, minBeds) whenever possible for structured criteria.
 - Use the 'query' parameter for general keyword searches (e.g., specific street names, owner names) that don't fit into structured filters.
-- If a user asks for "houses in Los Angeles", call \`search_local_properties(city='Los Angeles')\`.
+- If a user asks for "houses in Los Angeles", call \`search_local_properties(city='LOS ANGELES')\`.
+-always utilize capitalization for city ,query, state parameters
 - If a user asks for "properties owned by Smith", call \`search_local_properties(query='Smith')\`.
 - Only use enrichment tools (like \`get_rent_estimate\`) on properties you have FOUND in the database or if the user explicitly asks about a specific address.
 
@@ -59,14 +60,22 @@ Response: "The golden rule is the 70% rule: Purchase + Rehab should be ~70-75% o
  * @param messages - Array of chat messages
  * @returns The AI's final response text
  */
+import type { Response } from "express";
+
+/**
+ * Generate chat completion with agentic tool calling (up to 5 tool calls)
+ * @param messages - Array of chat messages
+ * @param res - Express Response object for streaming
+ */
 export async function generateAgentChatCompletion(
-  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>
-): Promise<string> {
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+  res: Response
+): Promise<void> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("OpenAI API key not configured");
   }
 
-  const MAX_ITERATIONS = 10;
+  const MAX_ITERATIONS = 5;
   let iterationCount = 0;
 
   try {
@@ -85,79 +94,101 @@ export async function generateAgentChatCompletion(
     // Agentic loop
     while (iterationCount < MAX_ITERATIONS) {
       iterationCount++;
+      console.time(`[AI Agent] Iteration ${iterationCount} Stream`);
 
-      const completion = await openai.chat.completions.create({
+      const stream = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: conversationMessages,
         tools: AI_TOOLS,
         tool_choice: "auto",
         temperature: 0.7,
         max_tokens: 4000,
+        stream: true,
       });
 
-      const responseMessage = completion.choices[0]?.message;
+      let toolCallBuffer: any[] = [];
 
-      if (!responseMessage) {
-        throw new Error("No response from OpenAI");
-      }
+      for await (const chunk of stream) {
+        const delta = chunk.choices[0]?.delta;
 
-      // Add assistant's response to conversation
-      conversationMessages.push(responseMessage);
+        // Handle Content Streaming
+        if (delta?.content) {
+          res.write(delta.content);
+        }
 
-      // Check if AI wants to call tools
-      if (responseMessage.tool_calls && responseMessage.tool_calls.length > 0) {
-        // Execute all tool calls
-        const toolResults = await Promise.all(
-          responseMessage.tool_calls.map(async (toolCall) => {
-            if (toolCall.type !== "function") {
-              return {
-                role: "tool" as const,
-                tool_call_id: toolCall.id,
-                content: JSON.stringify({ error: "Unsupported tool type" }),
-              };
+        // Handle Tool Call Streaming (Buffer it)
+        if (delta?.tool_calls) {
+          for (const toolCallDelta of delta.tool_calls) {
+            if (toolCallDelta.index !== undefined) {
+              // Initialize new tool call buffer if needed
+              if (!toolCallBuffer[toolCallDelta.index]) {
+                toolCallBuffer[toolCallDelta.index] = {
+                  id: toolCallDelta.id,
+                  type: "function",
+                  function: { name: "", arguments: "" },
+                };
+              }
+
+              const buffer = toolCallBuffer[toolCallDelta.index];
+              if (toolCallDelta.id) buffer.id = toolCallDelta.id;
+              if (toolCallDelta.function?.name)
+                buffer.function.name += toolCallDelta.function.name;
+              if (toolCallDelta.function?.arguments)
+                buffer.function.arguments += toolCallDelta.function.arguments;
             }
+          }
+        }
+      }
+      console.timeEnd(`[AI Agent] Iteration ${iterationCount} Stream`);
 
-            const functionName = toolCall.function.name;
-            const functionArgs = JSON.parse(toolCall.function.arguments);
-
-            console.log(
-              `[AI Agent] Calling tool: ${functionName}`,
-              functionArgs
-            );
-
-            const result = await executeTool(functionName, functionArgs);
-
-            return {
-              role: "tool" as const,
-              tool_call_id: toolCall.id,
-              content: JSON.stringify(result),
-            };
-          })
-        );
-
-        // Add tool results to conversation
-        conversationMessages.push(...toolResults);
-
-        // Continue loop to let AI process tool results
-        continue;
+      // If no tool calls, we are done
+      if (toolCallBuffer.length === 0) {
+        return;
       }
 
-      // No tool calls - AI has final answer
-      return responseMessage.content || "";
+      // If tool calls exist, process them
+      const toolCalls = toolCallBuffer.map((t) => ({
+        id: t.id,
+        type: t.type,
+        function: t.function,
+      }));
+
+      // Add assistant message with tool calls to history (required for API)
+      conversationMessages.push({
+        role: "assistant",
+        content: null,
+        tool_calls: toolCalls,
+      });
+
+      console.time(`[AI Agent] Iteration ${iterationCount} Tool Execution`);
+
+      const toolResults = await Promise.all(
+        toolCalls.map(async (toolCall) => {
+          const functionName = toolCall.function.name;
+          const functionArgs = JSON.parse(toolCall.function.arguments);
+
+          console.log(`[AI Agent] Calling tool: ${functionName}`, functionArgs);
+
+          const result = await executeTool(functionName, functionArgs);
+
+          return {
+            role: "tool" as const,
+            tool_call_id: toolCall.id,
+            content: JSON.stringify(result),
+          };
+        })
+      );
+
+      console.timeEnd(`[AI Agent] Iteration ${iterationCount} Tool Execution`);
+
+      // Add results to history and LOOP
+      conversationMessages.push(...toolResults);
     }
 
-    // Reached max iterations
-    console.warn(
-      `[AI Agent] Reached maximum iterations (${MAX_ITERATIONS}), returning last response`
-    );
-    const lastMessage = conversationMessages[conversationMessages.length - 1];
-    return lastMessage?.content || "Unable to complete request";
+    // Max iterations reached
+    res.write("\n\n[System] Reached maximum agent steps.");
   } catch (error) {
     console.error("AI agent error:", error);
-    throw new Error(
-      `Failed to generate agent completion: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`
-    );
+    throw error; // Controller will handle closing streaming connection
   }
 }
