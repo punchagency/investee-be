@@ -58,3 +58,23 @@ export const createChatCompletion = async (req: Request, res: Response) => {
     }
   }
 };
+
+/**
+ * List fine-tuning jobs
+ * GET /api/ai/fine-tuning-jobs
+ */
+export const getFineTuningJobs = async (req: Request, res: Response) => {
+  try {
+    const { listFineTuningJobs } = await import("../services/ai.service");
+    const jobs = await listFineTuningJobs();
+    res.json(jobs);
+  } catch (error) {
+    console.error("Error listing fine-tuning jobs:", error);
+    res.status(500).json({
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to list fine-tuning jobs",
+    });
+  }
+};

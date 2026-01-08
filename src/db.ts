@@ -9,6 +9,7 @@ import { PropertyWatchlist } from "./entities/PropertyWatchlist.entity";
 import { PropertyOffer } from "./entities/PropertyOffer.entity";
 import { PropertyAlert } from "./entities/PropertyAlert.entity";
 import { Vendor } from "./entities/Vendor.entity";
+import { AiModel } from "./entities/AiModel.entity";
 import { PropertyFavorite } from "./entities";
 
 if (!process.env.DATABASE_URL) {
@@ -32,6 +33,7 @@ export const AppDataSource = new DataSource({
     PropertyOffer,
     PropertyAlert,
     Vendor,
+    AiModel,
   ],
 });
 
