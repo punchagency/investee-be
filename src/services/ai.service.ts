@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import type { Response } from "express";
 import { AI_TOOLS, executeTool } from "../utils/ai.utils";
 
 const openai = new OpenAI({
@@ -55,12 +56,6 @@ Response: "A DSCR of 1.25x or higher is generally considered healthy—meaning r
 
 User: "Is this flip worth it?"
 Response: "The golden rule is the 70% rule: Purchase + Rehab should be ~70-75% of the After Repair Value (ARV). Ensure you factor in holding costs (interest, insurance). Our Fix & Flip Calculator can model this profit margin for you—want to try it?"`;
-/**
- * Generate chat completion with agentic tool calling (up to 5 tool calls)
- * @param messages - Array of chat messages
- * @returns The AI's final response text
- */
-import type { Response } from "express";
 
 /**
  * Generate chat completion with agentic tool calling (up to 5 tool calls)
@@ -190,5 +185,92 @@ export async function generateAgentChatCompletion(
   } catch (error) {
     console.error("AI agent error:", error);
     throw error; // Controller will handle closing streaming connection
+  }
+}
+
+/**
+ * Upload a file to OpenAI for fine-tuning
+ */
+export async function uploadTrainingFile(
+  filePath: string
+): Promise<OpenAI.Files.FileObject | undefined> {
+  try {
+    const fs = await import("fs");
+    const response = await openai.files.create({
+      file: fs.createReadStream(filePath),
+      purpose: "fine-tune",
+    });
+    console.log("Training file uploaded:", response);
+    return response;
+  } catch (error) {
+    console.error("Error uploading training file:", error);
+    throw error;
+  }
+}
+
+/**
+ * Start a fine-tuning job
+ */
+export async function createFineTuneJob(
+  trainingFileId: string,
+  model: string = "gpt-4o-mini-2024-07-18"
+): Promise<OpenAI.FineTuning.Jobs.FineTuningJob> {
+  try {
+    const fineTune = await openai.fineTuning.jobs.create({
+      training_file: trainingFileId,
+      model: model,
+      suffix: "salesapp",
+    });
+    console.log("Fine-tune job started:", fineTune);
+
+    // Update AiModel entity
+    try {
+      const { AppDataSource } = await import("../db");
+      const { AiModel } = await import("../entities/AiModel.entity");
+
+      const aiModelRepo = AppDataSource.getRepository(AiModel);
+      let aiModelEntry = await aiModelRepo.findOne({ where: { model: model } });
+
+      if (!aiModelEntry) {
+        aiModelEntry = aiModelRepo.create({
+          model: model,
+          lastTrainedAt: new Date(),
+        });
+      } else {
+        aiModelEntry.lastTrainedAt = new Date();
+      }
+      await aiModelRepo.save(aiModelEntry);
+      console.log("Updated AiModel entity with new training time.");
+    } catch (dbError) {
+      console.error("Failed to update AiModel entity:", dbError);
+    }
+
+    return fineTune;
+  } catch (error) {
+    console.error("Error creating fine-tune job:", error);
+    throw error;
+  }
+}
+
+/**
+ * List fine-tuning jobs
+ */
+export async function listFineTuningJobs(limit: number = 10): Promise<any[]> {
+  try {
+    const results = await openai.fineTuning.jobs.list({ limit });
+    return results.data.map((result) => ({
+      object: result.object,
+      id: result.id,
+      model: result.model,
+      created_at: result.created_at,
+      finished_at: result.finished_at,
+      fine_tuned_model: result.fine_tuned_model,
+      status: result.status,
+      training_file: result.training_file,
+      trained_tokens: result.trained_tokens,
+    }));
+  } catch (error) {
+    console.error("Error listing fine-tuning jobs:", error);
+    throw error;
   }
 }
