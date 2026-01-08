@@ -5,7 +5,6 @@ import path from "path";
 import OpenAI from "openai";
 import { pdfToPng } from "pdf-to-png-converter";
 import { AppDataSource, initializeDatabase } from "../src/db";
-import { AiModel } from "../src/entities/AiModel.entity";
 
 // --- Configuration ---
 const PDF_DIR = path.join(process.cwd(), "scripts", "training-pdf");
@@ -196,25 +195,13 @@ async function main() {
   console.log(`Saved output to: ${OUTPUT_FILE}`);
 
   // 6. Update AiModel Entity
-  // Check if a default model exists or create one
-  const aiModelRepo = AppDataSource.getRepository(AiModel);
-  let aiModel = await aiModelRepo.findOne({
-    where: { model: "gpt-4o-mini-2024-07-18" },
+  const { aiStorage } = await import("../src/storage/ai.storage");
+  await aiStorage.upsertAiModel({
+    model: "gpt-4o-mini-2024-07-18",
+    systemMessage: SYSTEM_MESSAGE_CINDEES,
+    lastTrainedAt: new Date(),
   });
-
-  if (!aiModel) {
-    aiModel = aiModelRepo.create({
-      model: "gpt-4o-mini-2024-07-18",
-      systemMessage: SYSTEM_MESSAGE_CINDEES,
-      lastTrainedAt: new Date(), // Mark as "trained" now since we generated data? Or just updated.
-    });
-    console.log("Created new AiModel entry.");
-  } else {
-    aiModel.systemMessage = SYSTEM_MESSAGE_CINDEES; // Update system message if changed
-    console.log("Updated existing AiModel entry.");
-  }
-
-  await aiModelRepo.save(aiModel);
+  console.log("Updated AiModel entry.");
 
   console.log("Done.");
   process.exit(0);
