@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { Response } from "express";
+import { aiStorage } from "../storage/ai.storage";
 import { AI_TOOLS, executeTool } from "../utils/ai.utils";
 
 const openai = new OpenAI({
@@ -70,7 +71,7 @@ export async function generateAgentChatCompletion(
     throw new Error("OpenAI API key not configured");
   }
 
-  const MAX_ITERATIONS = 5;
+  const MAX_ITERATIONS = 10;
   let iterationCount = 0;
 
   try {
@@ -92,7 +93,7 @@ export async function generateAgentChatCompletion(
       console.time(`[AI Agent] Iteration ${iterationCount} Stream`);
 
       const stream = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "ft:gpt-4o-mini-2024-07-18:punch:salesapp:CvnbwBkT",
         messages: conversationMessages,
         tools: AI_TOOLS,
         tool_choice: "auto",
@@ -219,27 +220,16 @@ export async function createFineTuneJob(
     const fineTune = await openai.fineTuning.jobs.create({
       training_file: trainingFileId,
       model: model,
-      suffix: "salesapp",
+      suffix: "investee",
     });
     console.log("Fine-tune job started:", fineTune);
 
     // Update AiModel entity
     try {
-      const { AppDataSource } = await import("../db");
-      const { AiModel } = await import("../entities/AiModel.entity");
-
-      const aiModelRepo = AppDataSource.getRepository(AiModel);
-      let aiModelEntry = await aiModelRepo.findOne({ where: { model: model } });
-
-      if (!aiModelEntry) {
-        aiModelEntry = aiModelRepo.create({
-          model: model,
-          lastTrainedAt: new Date(),
-        });
-      } else {
-        aiModelEntry.lastTrainedAt = new Date();
-      }
-      await aiModelRepo.save(aiModelEntry);
+      await aiStorage.upsertAiModel({
+        model: model,
+        lastTrainedAt: new Date(),
+      });
       console.log("Updated AiModel entity with new training time.");
     } catch (dbError) {
       console.error("Failed to update AiModel entity:", dbError);

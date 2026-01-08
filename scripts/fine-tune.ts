@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import "dotenv/config";
 import path from "path";
 import {
   uploadTrainingFile,
@@ -9,6 +10,7 @@ import { initializeDatabase } from "../src/db";
 
 const TRAINING_FILE_PATH = path.join(
   process.cwd(),
+  "scripts",
   "training-jsonl",
   "ready_for_finetune.jsonl"
 );
