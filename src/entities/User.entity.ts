@@ -6,9 +6,11 @@ import {
   UpdateDateColumn,
   PrimaryGeneratedColumn,
   OneToMany,
+  OneToOne,
 } from "typeorm";
 import { PropertyFavorite } from "./PropertyFavorite.entity";
 import { LoanApplication } from "./LoanApplication.entity";
+import { Vendor } from "./Vendor.entity";
 
 @Entity("users")
 export class User {
@@ -44,4 +46,7 @@ export class User {
 
   @OneToMany(() => LoanApplication, (application) => application.user)
   loanApplications!: LoanApplication[];
+
+  @OneToOne(() => Vendor, (vendor) => vendor.user)
+  vendor?: Vendor;
 }

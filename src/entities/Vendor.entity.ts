@@ -4,7 +4,11 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToOne,
 } from "typeorm";
+import { User } from "./User.entity";
 
 @Entity("vendors")
 export class Vendor {
@@ -72,6 +76,13 @@ export class Vendor {
     nullable: true,
   })
   contactName?: string;
+
+  @Column({ name: "user_id", type: "uuid", nullable: true })
+  userId?: string;
+
+  @OneToOne(() => User, (user) => user.vendor)
+  @JoinColumn({ name: "user_id" })
+  user?: User;
 
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
