@@ -98,15 +98,17 @@ export const AI_TOOLS = [
           query: {
             type: "string",
             description:
-              "Full text search term (matches address, city, or owner)",
+              "Broad search term. Use this for ANY location, address, or name if you are not 100% sure it is a specific City/State field.",
           },
           city: {
             type: "string",
-            description: "City name (e.g., 'LOS ANGELES')",
+            description:
+              "City name. Use ONLY if user explicitly defines the city.",
           },
           state: {
             type: "string",
-            description: "State abbreviation (e.g., 'CA')",
+            description:
+              "State abbreviation (e.g., 'CA'). Use ONLY if explicitly defined.",
           },
           zipCode: { type: "string", description: "ZIP / Postal code" },
           minPrice: { type: "number", description: "Minimum price" },
