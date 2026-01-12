@@ -14,7 +14,7 @@ export const AI_TOOLS = [
     function: {
       name: "get_property_details_attom",
       description:
-        "Get comprehensive property details from ATTOM API including market value, assessed value, property characteristics, and sale history. Use this for general property information.",
+        "ENRICHMENT ONLY. Get details for a specific property that you have ALREADY found in the local database. WARNING: DO NOT use this tool to search for properties. Only use it to get more details on a known address.",
       parameters: {
         type: "object",
         properties: {
@@ -37,7 +37,7 @@ export const AI_TOOLS = [
     function: {
       name: "get_property_value_estimate",
       description:
-        "Get automated valuation model (AVM) estimate and comparable sales from RentCast. Use this for property value analysis and market comparisons.",
+        "ENRICHMENT ONLY. Get value estimate for a property ALREADY found in the database. DO NOT use for search.",
       parameters: {
         type: "object",
         properties: {
@@ -64,7 +64,7 @@ export const AI_TOOLS = [
     function: {
       name: "get_rent_estimate",
       description:
-        "Get rental income estimate and comparable rentals from RentCast for investment property analysis. Use this for DSCR calculations and rental income projections.",
+        "ENRICHMENT ONLY. Get rent estimate for a property ALREADY found in the database. DO NOT use for search.",
       parameters: {
         type: "object",
         properties: {
