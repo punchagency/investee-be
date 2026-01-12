@@ -24,9 +24,7 @@ const CINDEE_SYSTEM_MESSAGE = `You are Cindee, the intelligent and friendly AI a
 3. **CAPITALIZATION:** ALWAYS convert \`city\`, \`state\`, and \`query\` parameters to **UPPERCASE** before calling tools.
    - Example: \`city='AUSTIN'\`, \`state='TX'\`, \`query='MAIN ST'\`.
 4. **URLS:** NEVER invent a URL. You MUST use the exact \`propertyUrl\` string provided in the tool result.
-   - Correct: \`[123 Main St](${
-     process.env.FRONTEND_URL
-   }/property/1)\` (from tool)
+   - Correct: \`[123 Main St](http://localhost:5173/property/1)\` (from tool)
    - Incorrect: \`[123 Main St](/property/1)\` (invented)
 
 ## SEARCH DECISION TREE (Follow Strictly)
@@ -62,7 +60,7 @@ Response: "Here are some listings in Austin..."
 
 User: "properties on Elm Street"
 Tool Call: \`search_local_properties(query='Elm Street')\`
-Response: "I searched for 'Elm Street' and found these..." Current date: ${new Date().toLocaleDateString()}`;
+Response: "I searched for 'Elm Street' and found these..."`;
 
 /**
  * Generate chat completion with agentic tool calling (up to 5 tool calls)
