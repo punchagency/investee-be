@@ -102,7 +102,7 @@ export const AI_TOOLS = [
           },
           city: {
             type: "string",
-            description: "City name (e.g., 'Los Angeles')",
+            description: "City name (e.g., 'LOS ANGELES')",
           },
           state: {
             type: "string",
