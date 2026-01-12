@@ -46,10 +46,6 @@ export const requestLogger = (
       region: "Unknown",
       city: "Unknown",
       ll: "Unknown" as number[] | string,
-      subdivisions: [] as string[],
-      postalCode: "Unknown",
-      metroCode: undefined as number | undefined,
-      accuracyRadius: undefined as number | undefined,
     };
 
     if (clientIp && reader) {
@@ -69,11 +65,6 @@ export const requestLogger = (
             response.location.longitude
               ? [response.location.latitude, response.location.longitude]
               : "Unknown",
-          subdivisions:
-            response.subdivisions?.map((s) => s.names?.en || "Unknown") || [],
-          postalCode: response.postal?.code || "Unknown",
-          metroCode: response.location?.metroCode,
-          accuracyRadius: response.location?.accuracyRadius,
         };
       } catch (geoError) {
         // IP not found in DB or invalid
