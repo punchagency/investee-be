@@ -5,7 +5,7 @@ const devTransport = {
     {
       target: "pino-pretty",
       options: {
-        colorize: true,
+        colorize: process.env.NODE_ENV !== "production",
         translateTime: "SYS:yyyy-mm-dd HH:MM:ss",
         ignore: "pid,hostname",
       },
