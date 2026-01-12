@@ -448,13 +448,22 @@ export const getPropertiesBasedOnUserLocation = async (
       return;
     }
 
-    const { city, region } = location;
-    // region usually maps to state code like 'CA' or 'NY' in geoip-lite for US
-    // city is 'City Name'
+    const { ll } = location;
+
+    if (!ll || ll === "Unknown" || !Array.isArray(ll)) {
+      res.json({
+        properties: [],
+        location: null,
+        message: "No specific location coordinates available",
+      });
+      return;
+    }
+
+    const [latitude, longitude] = ll;
 
     const property = await propertyStorage.getPropertyByLocation(
-      city === "Unknown" ? undefined : city,
-      region === "Unknown" ? undefined : region
+      latitude,
+      longitude
     );
 
     res.json({
