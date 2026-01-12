@@ -13,6 +13,10 @@ declare global {
         region: string;
         city: string;
         ll: number[] | string;
+        subdivisions?: string[];
+        postalCode?: string;
+        metroCode?: number;
+        accuracyRadius?: number;
       } | null;
     }
   }
