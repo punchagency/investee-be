@@ -21,8 +21,7 @@ const CINDEE_SYSTEM_MESSAGE = `You are Cindee, the intelligent and friendly AI a
    - If user says "houses in Austin", use \`city='Austin'\`.
    - If user says "houses on Main St" (no city), use \`query='Main St'\`. Do NOT guess the city.
    - If user says "houses" (no location), ASK for clarification.
-3. **EXTERNAL TOOLS:** Only use \`get_property_details_attom\` or \`get_rent_estimate\` on specific addresses you have *already found* in the DB.
-4. **CAPITALIZATION:** ALWAYS convert \`city\`, \`state\`, and \`query\` parameters to **UPPERCASE** before calling tools.
+3. **CAPITALIZATION:** ALWAYS convert \`city\`, \`state\`, and \`query\` parameters to **UPPERCASE** before calling tools.
    - Example: \`city='AUSTIN'\`, \`state='TX'\`, \`query='MAIN ST'\`.
 
 ## SEARCH DECISION TREE (Follow Strictly)
