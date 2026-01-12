@@ -101,7 +101,7 @@ export async function enrichPropertyWithAttom(
       }
     }
 
-    await propertyStorage.updateProperty(propertyId, {
+    const updates: any = {
       attomStatus: "success",
       attomMarketValue:
         prop.assessment?.market?.mktTotalValue ||
@@ -127,7 +127,26 @@ export async function enrichPropertyWithAttom(
       attomData: prop,
       attomSyncedAt: new Date(),
       attomError: null,
-    });
+    };
+
+    if (prop.address?.postal1) {
+      updates.postalCode = prop.address.postal1;
+    }
+
+    if (prop.location?.latitude && prop.location?.longitude) {
+      const lat = parseFloat(prop.location.latitude);
+      const lon = parseFloat(prop.location.longitude);
+      if (!isNaN(lat) && !isNaN(lon)) {
+        updates.latitude = lat;
+        updates.longitude = lon;
+        updates.location = {
+          type: "Point",
+          coordinates: [lon, lat],
+        };
+      }
+    }
+
+    await propertyStorage.updateProperty(propertyId, updates);
   } catch (error) {
     await propertyStorage.updateProperty(propertyId, {
       attomStatus: "failed",
