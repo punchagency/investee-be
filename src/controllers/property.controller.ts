@@ -115,6 +115,7 @@ export const getAllProperties = async (req: Request, res: Response) => {
       maxSqFt,
       limit,
       offset,
+      propertyType,
     } = req.query as any;
 
     const [allProperties, count] = await propertyStorage.getAllProperties({
@@ -124,6 +125,9 @@ export const getAllProperties = async (req: Request, res: Response) => {
       city: city ? String(city).toUpperCase() : undefined,
       state: state ? String(state).toUpperCase() : undefined,
       zipCode: zipCode ? String(zipCode) : undefined,
+      propertyType: propertyType
+        ? String(propertyType).toUpperCase()
+        : undefined,
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       minBeds: minBeds ? Number(minBeds) : undefined,

@@ -38,6 +38,7 @@ export class PropertyStorage {
     city?: string;
     state?: string;
     zipCode?: string;
+    propertyType?: string;
     minPrice?: number;
     maxPrice?: number;
     minBeds?: number;
@@ -74,6 +75,13 @@ export class PropertyStorage {
         qb.andWhere("property.state = :state", {
           state: params.state,
         });
+
+      if (params.propertyType) {
+        qb.andWhere("property.propertyType = :propertyType", {
+          propertyType: params.propertyType,
+        });
+      }
+
       if (params.zipCode)
         qb.andWhere("property.postalCode ILIKE :zipCode", {
           zipCode: `%${params.zipCode}%`,
