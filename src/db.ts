@@ -20,8 +20,8 @@ if (!process.env.DATABASE_URL) {
 
 export const AppDataSource = new DataSource({
   type: "postgres",
-  url: process.env.DATABASE_URL,
-  synchronize: process.env.NODE_ENV !== "production",
+  url: process.env.PROD_DATABASE_URL,
+  synchronize: false, // We will sync manually after enabling extensions
   logging: process.env.NODE_ENV === "development",
   entities: [
     User,
@@ -42,6 +42,22 @@ export const initializeDatabase = async () => {
   try {
     await AppDataSource.initialize();
     console.log("Database connection initialized successfully");
+
+    // Enable PostGIS extension BEFORE validiting schema
+    try {
+      await AppDataSource.query("CREATE EXTENSION IF NOT EXISTS postgis");
+    } catch (e) {
+      console.warn(
+        "Could not enable PostGIS extension. Spatial features may fail.",
+        e
+      );
+    }
+
+    // Now sync schema
+    if (process.env.NODE_ENV !== "production") {
+      await AppDataSource.synchronize();
+      console.log("Database schema synchronized");
+    }
 
     // Ensure Full Text Search Index exists
     await AppDataSource.query(`

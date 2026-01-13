@@ -168,34 +168,38 @@ export class PropertyStorage {
   }
 
   async getPropertyByLocation(
-    city?: string,
-    state?: string
+    latitude: number,
+    longitude: number,
+    radiusKm: number = 50
   ): Promise<Property | null> {
     const qb = this.propertyRepo.createQueryBuilder("property");
 
-    if (!city && !state) {
-      return null;
-    }
+    // Convert km to meters for ST_DWithin
+    const radiusMeters = radiusKm * 1000;
 
-    qb.where("1 = 0");
-
-    if (city) {
-      const sanitizedCity = city.replace(/[^\w\s]/g, "").trim();
-      if (sanitizedCity) {
-        qb.orWhere("property.city ILIKE :city", { city: `%${sanitizedCity}%` });
+    // Use PostGIS ST_DWithin to find properties within the radius
+    // We assume the 'location' column is of type 'geography' with SRID 4326
+    qb.where(
+      `ST_DWithin(
+        property.location, 
+        ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326), 
+        :radiusMeters
+      )`,
+      {
+        longitude,
+        latitude,
+        radiusMeters,
       }
-    }
+    );
 
-    if (state) {
-      const sanitizedState = state.replace(/[^\w\s]/g, "").trim();
-      if (sanitizedState) {
-        qb.orWhere("property.state ILIKE :state", {
-          state: `%${sanitizedState}%`,
-        });
-      }
-    }
-
-    qb.orderBy("property.createdAt", "DESC");
+    // Order by distance (nearest first)
+    qb.orderBy(
+      `ST_Distance(
+        property.location, 
+        ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)
+      )`,
+      "ASC"
+    );
 
     return await qb.getOne();
   }
