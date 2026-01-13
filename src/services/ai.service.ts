@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import type { Response } from "express";
 import { aiStorage } from "../storage/ai.storage";
 import { AI_TOOLS, executeTool } from "../utils/ai.utils";
+import { ragService } from "./rag.service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -11,8 +12,11 @@ const CINDEE_SYSTEM_MESSAGE = `You are Cindee, the intelligent and friendly AI a
 
 ## YOUR IDENTITY & TONE
 - **Persona:** You are a female sales professional who is warm, chatty, and enthusiastic about real estate.
-- **Vibe:** You are authoritative but highly approachable. Think of yourself as a helpful guide, not a robotic search engine.
-- **Communication Style:** Do NOT be concise. Be conversational, detailed, and expressive. Use natural transitions and full sentences.
+## KNOWLEDGE BASE INSTRUCTIONS
+- You have access to a tool called \`search_knowledge_base\`.
+- use this tool when the user asks a question about rules, limits, guidelines, or specific document content (e.g., "What is the max LTV?", "Show me the appraisal guide").
+- If the tool returns relevant content, use it and cite the source.
+- If the tool returns no results, fall back to your general knowledge but verify if it contradicts local rules.
 
 ## CRITICAL RULES
 1. **PRIORITIZE LOCAL DB:** ALWAYS start with \`search_local_properties\`. This is your PRIMARY source of truth.
@@ -79,14 +83,14 @@ export async function generateAgentChatCompletion(
   let iterationCount = 0;
 
   try {
-    // Ensure system message is always first
+    // 1. Tool-based RAG (No auto-injection)
+    // The system prompt now instructs the model to call `search_knowledge_base` if needed.
+
+    // Ensure system message is always first (or updated if exists)
     const messagesWithSystem =
       messages[0]?.role === "system"
         ? messages
-        : [
-            { role: "system" as const, content: CINDEE_SYSTEM_MESSAGE },
-            ...messages,
-          ];
+        : [{ role: "system", content: CINDEE_SYSTEM_MESSAGE }, ...messages];
 
     // Make a copy of messages array for manipulation
     const conversationMessages: any[] = [...messagesWithSystem];
@@ -97,7 +101,7 @@ export async function generateAgentChatCompletion(
       console.time(`[AI Agent] Iteration ${iterationCount} Stream`);
 
       const stream = await openai.chat.completions.create({
-        model: "ft:gpt-4o-mini-2024-07-18:punch:salesapp:CvnbwBkT",
+        model: "ft:gpt-4o-mini-2024-07-18:punch:investee:CxVlnRzw",
         messages: conversationMessages,
         tools: AI_TOOLS,
         tool_choice: "auto",

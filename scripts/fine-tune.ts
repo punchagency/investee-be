@@ -12,7 +12,7 @@ const TRAINING_FILE_PATH = path.join(
   process.cwd(),
   "scripts",
   "training-jsonl",
-  "ready_for_finetune.jsonl"
+  "ai.cindee.jsonl"
 );
 
 async function main() {

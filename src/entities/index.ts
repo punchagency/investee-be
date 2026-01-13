@@ -9,3 +9,4 @@ export { PropertyOffer } from "./PropertyOffer.entity";
 export { PropertyAlert } from "./PropertyAlert.entity";
 export { Vendor } from "./Vendor.entity";
 export { PropertyFavorite } from "./PropertyFavorite.entity";
+export { DocumentChunk } from "./DocumentChunk.entity";

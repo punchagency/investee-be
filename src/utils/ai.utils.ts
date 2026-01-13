@@ -1,4 +1,5 @@
 import { propertyStorage } from "../storage/property.storage";
+import { ragService } from "../services/rag.service";
 
 /**
  * Tool definitions for AI agent
@@ -57,6 +58,25 @@ export const AI_TOOLS = [
           },
         },
         required: [],
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "search_knowledge_base",
+      description:
+        "Search the internal knowledge base for documents, guidelines, policies, and specific questions (e.g., 'LTV limits', 'appraisal requirements'). Use this when the user asks a question about rules, limits, or 'how to'.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: {
+            type: "string",
+            description:
+              "The specific question or topic to search for (e.g., 'commercial property LTV limits').",
+          },
+        },
+        required: ["query"],
       },
     },
   },
@@ -126,6 +146,19 @@ export async function executeTool(
           type: p.propertyType,
           owner: p.owner,
           propertyUrl: `${process.env.FRONTEND_URL}/property/${p.id}`,
+        }));
+      }
+
+      case "search_knowledge_base": {
+        const docs = await ragService.searchSimilarDocuments(args.query);
+        if (docs.length === 0) {
+          return {
+            message: "No relevant documents found in the knowledge base.",
+          };
+        }
+        return docs.map((d) => ({
+          content: d.content,
+          source: d.metadata?.source || "Internal Knowledge Base",
         }));
       }
 
