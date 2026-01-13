@@ -19,8 +19,7 @@ export class DocumentChunk {
 
   // Storing as pgvector
   @Column("vector", { length: 1536, nullable: true })
-  embedding!: string;
-
+  embedding!: string; 
   @CreateDateColumn()
   created_at!: Date;
 
