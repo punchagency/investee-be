@@ -121,8 +121,8 @@ export const getAllProperties = async (req: Request, res: Response) => {
       query:
         (search ? String(search) : undefined) ||
         (query ? String(query) : undefined),
-      city: city ? String(city) : undefined,
-      state: state ? String(state) : undefined,
+      city: city ? String(city).toUpperCase() : undefined,
+      state: state ? String(state).toUpperCase() : undefined,
       zipCode: zipCode ? String(zipCode) : undefined,
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,

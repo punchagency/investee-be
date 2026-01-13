@@ -11,7 +11,6 @@ export const ragService = {
    * Generate an embedding using OpenAI's text-embedding-3-small
    */
   async generateEmbedding(text: string): Promise<number[]> {
-    // Replace newlines to improve performance as recommended by OpenAI in some docs
     const cleanedText = text.replace(/\n/g, " ");
 
     const response = await openai.embeddings.create({
