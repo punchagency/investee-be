@@ -68,11 +68,18 @@ export async function enrichPropertyWithRentcast(
 
     let propertyData: any = null;
     let taxHistory: any = null;
+    let latitude: number | null = null;
+    let longitude: number | null = null;
+    let zip: string | null = null;
+
     if (propertyResponse.status === 200) {
       const propData = propertyResponse.data;
       if (Array.isArray(propData) && propData.length > 0) {
         propertyData = propData[0];
         taxHistory = propertyData.taxAssessments || null;
+        latitude = propertyData.latitude || null;
+        longitude = propertyData.longitude || null;
+        zip = propertyData.zipCode || null;
       }
     }
 
@@ -111,7 +118,7 @@ export async function enrichPropertyWithRentcast(
       }
     }
 
-    await propertyStorage.updateProperty(propertyId, {
+    const updates: any = {
       rentcastStatus: "success",
       rentcastValueEstimate: valueEstimate,
       rentcastValueLow: valueLow,
@@ -126,7 +133,22 @@ export async function enrichPropertyWithRentcast(
       rentcastMarketData: marketData,
       rentcastError: null,
       rentcastSyncedAt: new Date(),
-    });
+    };
+
+    if (zip) {
+      updates.postalCode = zip;
+    }
+
+    if (latitude && longitude) {
+      updates.latitude = latitude;
+      updates.longitude = longitude;
+      updates.location = {
+        type: "Point",
+        coordinates: [longitude, latitude],
+      };
+    }
+
+    await propertyStorage.updateProperty(propertyId, updates);
   } catch (error) {
     await propertyStorage.updateProperty(propertyId, {
       rentcastStatus: "failed",
