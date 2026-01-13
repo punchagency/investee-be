@@ -25,6 +25,20 @@ export class Property {
   @Column({ type: "text", nullable: true })
   state!: string | null;
 
+  @Column({ type: "double precision", nullable: true })
+  latitude!: number | null;
+
+  @Column({ type: "double precision", nullable: true })
+  longitude!: number | null;
+
+  @Column({
+    type: "geography",
+    spatialFeatureType: "Point",
+    srid: 4326,
+    nullable: true,
+  })
+  location!: any;
+
   @Column({ name: "postal_code", type: "text", nullable: true })
   postalCode!: string | null;
 
