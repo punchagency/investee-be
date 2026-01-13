@@ -11,6 +11,7 @@ import { PropertyAlert } from "./entities/PropertyAlert.entity";
 import { Vendor } from "./entities/Vendor.entity";
 import { AiModel } from "./entities/AiModel.entity";
 import { PropertyFavorite } from "./entities";
+import { DocumentChunk } from "./entities";
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -20,7 +21,7 @@ if (!process.env.DATABASE_URL) {
 
 export const AppDataSource = new DataSource({
   type: "postgres",
-  url: process.env.PROD_DATABASE_URL,
+  url: process.env.DATABASE_URL,
   synchronize: false, // We will sync manually after enabling extensions
   logging: process.env.NODE_ENV === "development",
   entities: [
@@ -34,6 +35,7 @@ export const AppDataSource = new DataSource({
     PropertyAlert,
     Vendor,
     AiModel,
+    DocumentChunk,
   ],
 });
 
@@ -43,15 +45,10 @@ export const initializeDatabase = async () => {
     await AppDataSource.initialize();
     console.log("Database connection initialized successfully");
 
-    // Enable PostGIS extension BEFORE validiting schema
-    try {
-      await AppDataSource.query("CREATE EXTENSION IF NOT EXISTS postgis");
-    } catch (e) {
-      console.warn(
-        "Could not enable PostGIS extension. Spatial features may fail.",
-        e
-      );
-    }
+    // Enable pgvector extension (optional, soft-fail)
+    // Enable database extensions
+    await AppDataSource.query("CREATE EXTENSION IF NOT EXISTS vector");
+    await AppDataSource.query("CREATE EXTENSION IF NOT EXISTS postgis");
 
     // Now sync schema
     if (process.env.NODE_ENV !== "production") {
@@ -69,6 +66,15 @@ export const initializeDatabase = async () => {
     await AppDataSource.query(`
       CREATE INDEX IF NOT EXISTS idx_property_state_created_at ON properties (state, created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_property_city_fts ON properties USING GIN (to_tsvector('english', coalesce(city, '')));
+    `);
+
+    // Add HNSW Index for fast vector search
+    // This dramatically speeds up similarity queries
+    await AppDataSource.query(`
+      CREATE INDEX IF NOT EXISTS idx_document_embedding 
+      ON document_chunks 
+      USING hnsw (embedding vector_l2_ops)
+      WITH (m = 16, ef_construction = 64);
     `);
   } catch (error) {
     console.error("Error initializing database:", error);
