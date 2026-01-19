@@ -53,6 +53,7 @@ export class PropertyStorage {
     skipCount?: boolean;
     orderBy?: PropertyKeys;
     orderDirection?: "ASC" | "DESC";
+    excludeIds?: string[];
   }): Promise<[Property[], number]> {
     const qb = this.propertyRepo.createQueryBuilder("property");
     if (params?.select) {
@@ -131,6 +132,12 @@ export class PropertyStorage {
           );
         }
       }
+
+      if (params.excludeIds && params.excludeIds.length > 0) {
+        qb.andWhere("property.id NOT IN (:...excludeIds)", {
+          excludeIds: params.excludeIds,
+        });
+      }
     }
 
     // Default sort is createdAt DESC, but allow override
@@ -148,13 +155,6 @@ export class PropertyStorage {
     }
 
     return await qb.getManyAndCount();
-  }
-
-  async getPropertiesByStatus(status: string): Promise<Property[]> {
-    return await this.propertyRepo.find({
-      where: { attomStatus: status },
-      order: { createdAt: "DESC" },
-    });
   }
 
   async updateProperty(
@@ -175,11 +175,12 @@ export class PropertyStorage {
     });
   }
 
-  async getPropertyByLocation(
+  async getPropertiesByLocation(
     latitude: number,
     longitude: number,
-    radiusKm: number = 50
-  ): Promise<Property | null> {
+    radiusKm: number = 50,
+    limit: number = 4
+  ): Promise<Property[]> {
     const qb = this.propertyRepo.createQueryBuilder("property");
 
     // Convert km to meters for ST_DWithin
@@ -209,7 +210,9 @@ export class PropertyStorage {
       "ASC"
     );
 
-    return await qb.getOne();
+    qb.take(limit);
+
+    return await qb.getMany();
   }
 }
 

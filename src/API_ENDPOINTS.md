@@ -115,22 +115,6 @@
 
 ## Property Endpoints
 
-### ATTOM Search (Property Lookup)
-
-- **GET** `/property/search?address={address}`
-- **Query Params**: `address` (required)
-- **Response**: ATTOM property data
-
-### ATTOM Radius Search
-
-- **GET** `/property/radius?lat={lat}&lng={lng}&radius={radius}`
-- **Query Params**:
-  - `lat` (required)
-  - `lng` (required)
-  - `radius` (optional, default: 1)
-  - `minbeds`, `maxbeds`, `propertytype` (optional)
-- **Response**: Properties within radius
-
 ### Get All Properties
 
 - **GET** `/properties`
@@ -157,22 +141,6 @@
   }
   ```
 - **Response**: Import results
-
-### Enrich Properties with ATTOM (Batch)
-
-- **POST** `/properties/enrich`
-- **Body**:
-  ```json
-  {
-    "force": false
-  }
-  ```
-- **Response**: Enrichment status
-
-### Enrich Single Property with ATTOM
-
-- **POST** `/properties/:id/enrich`
-- **Response**: Updated property with ATTOM data
 
 ### Enrich Single Property with Rentcast
 
@@ -366,7 +334,7 @@ Most endpoints return:
 - `DATABASE_URL` - PostgreSQL connection string
 - `JWT_SECRET` - Access token secret
 - `JWT_REFRESH_SECRET` - Refresh token secret
-- `ATTOM_API_KEY` - ATTOM property data API key
+
 - `RENTCAST_API_KEY` - Rentcast API key
 - `GOOGLE_MAPS_API_KEY` - Google Maps API key
 - `COOKIE_DOMAIN` - Domain for cookies (production only)

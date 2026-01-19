@@ -6,7 +6,7 @@ import { generateAgentChatCompletion } from "../services/ai.service";
  * POST /api/ai/chat
  * Body: { messages: Array<{ role: "system" | "user" | "assistant", content: string }> }
  *
- * The AI can make up to 5 automated tool calls to fetch property data from ATTOM and RentCast APIs
+ * The AI can make up to 5 automated tool calls to fetch property data from RentCast API
  */
 export const createChatCompletion = async (req: Request, res: Response) => {
   try {
