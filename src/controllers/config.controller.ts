@@ -20,16 +20,32 @@ export const getStreetView = async (req: Request, res: Response) => {
     return;
   }
 
-  const { address, size = "400x300" } = req.query;
+  const { address, size = "400x300", heading } = req.query;
   if (!address || typeof address !== "string") {
     res.status(400).json({ error: "Address is required" });
     return;
   }
 
   try {
-    const streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=${size}&location=${encodeURIComponent(
-      address
-    )}&pitch=0&fov=90&source=outdoor&key=${apiKey}`;
+    const encodedLocation = encodeURIComponent(address);
+    // Check metadata first to avoid paying for non-existent images
+    const metadataUrl = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${encodedLocation}&key=${apiKey}`;
+
+    const metadataResponse = await axios.get(metadataUrl);
+
+    // If status is not OK, no street view exists
+    if (metadataResponse.data.status !== "OK") {
+      const path = await import("path");
+      const fallbackImage = path.resolve(process.cwd(), "streetview.jpeg");
+      res.sendFile(fallbackImage);
+      return;
+    }
+
+    let streetViewUrl = `https://maps.googleapis.com/maps/api/streetview?size=${size}&location=${encodedLocation}&pitch=0&fov=90&source=outdoor&key=${apiKey}`;
+
+    if (heading) {
+      streetViewUrl += `&heading=${heading}`;
+    }
 
     // Use axios to fetch image buffer
     const response = await axios.get(streetViewUrl, {
