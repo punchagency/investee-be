@@ -15,24 +15,24 @@ export interface TokenPayload {
 export const generateAccessToken = (
   userId: string,
   email: string,
-  role: string = "user"
+  role: string = "user",
 ): string => {
   return jwt.sign(
     { userId, email, role },
     JWT_SECRET,
-    { expiresIn: "7d" } // 7 days
+    { expiresIn: "7d" }, // 7 days
   );
 };
 
 export const generateRefreshToken = (
   userId: string,
   email: string,
-  role: string = "user"
+  role: string = "user",
 ): string => {
   return jwt.sign(
     { userId, email, role },
     JWT_REFRESH_SECRET,
-    { expiresIn: "30d" } // 30 days
+    { expiresIn: "30d" }, // 30 days
   );
 };
 

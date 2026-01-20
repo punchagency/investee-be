@@ -9,6 +9,7 @@
         "train:pdf": "tsx scripts/data-extraction.ts",
         "train:fine-tune": "tsx scripts/fine-tune.ts",
         "ingest": "set NODE_OPTIONS=--max-old-space-size=8192 && tsx scripts/ingest-documents.ts",
+        "enrich": "tsx scripts/enrich-properties.ts",
         "start": "node dist/src/index.js",
         "check": "tsc",
         "typeorm": "typeorm-ts-node-commonjs"

@@ -148,8 +148,6 @@ async function processPdfInBatches(filePath: string, filename: string) {
         await new Promise((resolve) => setTimeout(resolve, 200));
       }
     } catch (err) {
-      // If the error is "page out of range", we are done.
-      // Otherwise it's a real error.
       const errMsg = (err as Error).message || "";
       if (errMsg.includes("range") || errMsg.includes("page")) {
         console.log("   > Reached end of PDF.");

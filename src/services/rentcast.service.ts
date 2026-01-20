@@ -49,11 +49,11 @@ export async function enrichPropertyWithRentcast(
         requestConfig
       ),
       axios.get(
-        `${RENTCAST_API_BASE}/avm/value?address=${encodedAddress}&compCount=10`,
+        `${RENTCAST_API_BASE}/avm/value?address=${encodedAddress}&compCount=0`,
         requestConfig
       ),
       axios.get(
-        `${RENTCAST_API_BASE}/avm/rent/long-term?address=${encodedAddress}&compCount=10`,
+        `${RENTCAST_API_BASE}/avm/rent/long-term?address=${encodedAddress}&compCount=0`,
         requestConfig
       ),
     ]);
@@ -66,56 +66,52 @@ export async function enrichPropertyWithRentcast(
       return;
     }
 
-    let propertyData: any = null;
-    let taxHistory: any = null;
     let latitude: number | null = null;
     let longitude: number | null = null;
     let zip: string | null = null;
+    let annualTaxes: number | null = null;
 
     if (propertyResponse.status === 200) {
       const propData = propertyResponse.data;
       if (Array.isArray(propData) && propData.length > 0) {
-        propertyData = propData[0];
-        taxHistory = propertyData.taxAssessments || null;
+        const propertyData = propData[0];
         latitude = propertyData.latitude || null;
         longitude = propertyData.longitude || null;
         zip = propertyData.zipCode || null;
+
+        if (propertyData.taxAssessments) {
+          const assessments = propertyData.taxAssessments;
+          const entries = Object.values(assessments) as any[];
+          if (entries.length > 0) {
+            const sorted = entries.sort(
+              (a, b) => (b.year || 0) - (a.year || 0)
+            );
+            if (sorted.length > 0 && sorted[0].taxAmount) {
+              annualTaxes = sorted[0].taxAmount;
+            }
+          }
+        }
       }
     }
 
     let valueEstimate: number | null = null;
     let valueLow: number | null = null;
     let valueHigh: number | null = null;
-    let saleComps: any = null;
     if (valueResponse.status === 200) {
       const valueData: any = valueResponse.data;
       valueEstimate = valueData.price || null;
       valueLow = valueData.priceLow || null;
       valueHigh = valueData.priceHigh || null;
-      saleComps = valueData.comparables || null;
     }
 
     let rentEstimate: number | null = null;
     let rentLow: number | null = null;
     let rentHigh: number | null = null;
-    let rentComps: any = null;
     if (rentResponse.status === 200) {
       const rentData: any = rentResponse.data;
       rentEstimate = rentData.rent || null;
       rentLow = rentData.rentRangeLow || null;
       rentHigh = rentData.rentRangeHigh || null;
-      rentComps = rentData.comparables || null;
-    }
-
-    let marketData: any = null;
-    if (postalCode) {
-      const marketResponse = await axios.get(
-        `${RENTCAST_API_BASE}/markets?zipCode=${postalCode}`,
-        requestConfig
-      );
-      if (marketResponse.status === 200) {
-        marketData = marketResponse.data;
-      }
     }
 
     const updates: any = {
@@ -126,11 +122,8 @@ export async function enrichPropertyWithRentcast(
       rentcastRentEstimate: rentEstimate,
       rentcastRentLow: rentLow,
       rentcastRentHigh: rentHigh,
-      rentcastPropertyData: propertyData,
-      rentcastTaxHistory: taxHistory,
-      rentcastSaleComps: saleComps,
-      rentcastRentComps: rentComps,
-      rentcastMarketData: marketData,
+      annualTaxes: annualTaxes,
+
       rentcastError: null,
       rentcastSyncedAt: new Date(),
     };
@@ -342,143 +335,6 @@ export async function getMarketOverviewForAI(zipCode: string): Promise<{
         totalListings: data.totalListings,
         daysOnMarket: data.averageDaysOnMarket,
         trend: "Data reflects market averages over the last 12 months",
-      },
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
-
-/**
- * Search for active listings in a city/state area
- */
-export async function searchActiveListingsForAI(
-  city: string,
-  state: string,
-  minPrice?: number,
-  maxPrice?: number,
-  limit: number = 5
-): Promise<{
-  success: boolean;
-  data?: any;
-  error?: string;
-}> {
-  const apiKey = process.env.RENTCAST_API_KEY;
-  if (!apiKey)
-    return { success: false, error: "RentCast API key not configured" };
-
-  try {
-    const params = new URLSearchParams({
-      city,
-      state,
-      status: "Active",
-      limit: limit.toString(),
-      listingType: "Sale",
-    });
-
-    if (minPrice) params.append("priceMin", minPrice.toString());
-    if (maxPrice) params.append("priceMax", maxPrice.toString());
-
-    const response = await axios.get(
-      `${RENTCAST_API_BASE}/listings/sale?${params.toString()}`,
-      {
-        headers: { Accept: "application/json", "X-Api-Key": apiKey },
-        validateStatus: () => true,
-      }
-    );
-
-    if (response.status !== 200) {
-      return { success: false, error: `API returned ${response.status}` };
-    }
-
-    const data = response.data as any[];
-
-    return {
-      success: true,
-      data: {
-        count: data.length,
-        listings: data.map((l) => ({
-          address: l.formattedAddress,
-          propertyUrl: generateGoogleMapsUrl(l.formattedAddress),
-          price: l.price,
-          daysOnMarket: l.daysOnMarket,
-          headline: l.headline,
-          description: l.description
-            ? l.description.substring(0, 100) + "..."
-            : null,
-        })),
-      },
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
-
-/**
- * Search for properties by location
- */
-export async function searchPropertiesForAI(
-  city?: string,
-  state?: string,
-  zipCode?: string,
-  propertyType?: string,
-  limit: number = 5
-): Promise<{
-  success: boolean;
-  data?: any;
-  error?: string;
-}> {
-  const apiKey = process.env.RENTCAST_API_KEY;
-  if (!apiKey)
-    return { success: false, error: "RentCast API key not configured" };
-
-  try {
-    const params = new URLSearchParams({
-      limit: limit.toString(),
-    });
-
-    if (city) params.append("city", city);
-    if (state) params.append("state", state);
-    if (zipCode) params.append("zipCode", zipCode);
-    if (propertyType) params.append("propertyType", propertyType);
-
-    const response = await axios.get(
-      `${RENTCAST_API_BASE}/properties?${params.toString()}`,
-      {
-        headers: { Accept: "application/json", "X-Api-Key": apiKey },
-        validateStatus: () => true,
-      }
-    );
-
-    if (response.status !== 200) {
-      return { success: false, error: `API returned ${response.status}` };
-    }
-
-    const data = response.data as any[];
-
-    return {
-      success: true,
-      data: {
-        count: data.length,
-        properties: data.map((p) => ({
-          address: p.formattedAddress,
-          propertyUrl: generateGoogleMapsUrl(p.formattedAddress),
-          city: p.city,
-          state: p.state,
-          zip: p.zipCode,
-          type: p.propertyType,
-          beds: p.bedrooms,
-          baths: p.bathrooms,
-          sqft: p.squareFootage,
-          lastSaleDate: p.lastSaleDate,
-          lastSalePrice: p.lastSalePrice,
-        })),
       },
     };
   } catch (error) {
