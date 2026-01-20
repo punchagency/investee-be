@@ -1,7 +1,6 @@
 import "reflect-metadata";
 import { DataSource } from "typeorm";
 import { User } from "./entities/User.entity";
-
 import { Property } from "./entities/Property.entity";
 import { LoanApplication } from "./entities/LoanApplication.entity";
 import { PropertyListing } from "./entities/PropertyListing.entity";
@@ -15,13 +14,13 @@ import { DocumentChunk } from "./entities";
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?"
+    "DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
 
 export const AppDataSource = new DataSource({
   type: "postgres",
-  url: process.env.DATABASE_URL,
+  url: process.env.PROD_DATABASE_URL,
   synchronize: false, // We will sync manually after enabling extensions
   logging: process.env.NODE_ENV === "development",
   entities: [
@@ -45,7 +44,6 @@ export const initializeDatabase = async () => {
     await AppDataSource.initialize();
     console.log("Database connection initialized successfully");
 
-    // Enable pgvector extension (optional, soft-fail)
     // Enable database extensions
     await AppDataSource.query("CREATE EXTENSION IF NOT EXISTS vector");
     await AppDataSource.query("CREATE EXTENSION IF NOT EXISTS postgis");
@@ -69,7 +67,6 @@ export const initializeDatabase = async () => {
     `);
 
     // Add HNSW Index for fast vector search
-    // This dramatically speeds up similarity queries
     await AppDataSource.query(`
       CREATE INDEX IF NOT EXISTS idx_document_embedding 
       ON document_chunks 

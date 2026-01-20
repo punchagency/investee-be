@@ -1,9 +1,9 @@
 import "dotenv/config";
 import { initializeDatabase } from "../src/db";
 import { propertyStorage } from "../src/storage/property.storage";
-import { enrichPropertyWithRentcast } from "../src/services/rentcast.service";
-import { delay } from "../src/services/attom.service";
 import { geocodeAddress } from "../src/services/google.service";
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function runEnrichment() {
   await initializeDatabase();
@@ -38,67 +38,8 @@ async function runEnrichment() {
       let lat = property.latitude;
       let lon = property.longitude;
       let zip = property.postalCode;
-      let needsUpdate = false;
-      const updates: any = {};
 
-      // 1. Try to backfill from existing RentCast JSON data
-      if (property.rentcastPropertyData) {
-        const data = property.rentcastPropertyData;
-        if ((!lat || !lon) && data.latitude && data.longitude) {
-          lat = data.latitude;
-          lon = data.longitude;
-          needsUpdate = true;
-        }
-        if (!zip && data.zipCode) {
-          zip = data.zipCode;
-          updates.postalCode = zip;
-          needsUpdate = true;
-        }
-      }
-
-      // 2. Try to backfill from existing Attom JSON data
-      if (property.attomData) {
-        const data = property.attomData;
-        if (
-          (!lat || !lon) &&
-          data.location?.latitude &&
-          data.location?.longitude
-        ) {
-          lat = parseFloat(data.location.latitude);
-          lon = parseFloat(data.location.longitude);
-          if (!isNaN(lat) && !isNaN(lon)) {
-            needsUpdate = true;
-          }
-        }
-        if (!zip && data.address?.postal1) {
-          zip = data.address.postal1;
-          updates.postalCode = zip;
-          needsUpdate = true;
-        }
-      }
-
-      // 3. If we found data in JSON, update the DB record directly
-      if (needsUpdate) {
-        if (lat && lon) {
-          updates.latitude = lat;
-          updates.longitude = lon;
-          updates.location = {
-            type: "Point",
-            coordinates: [lon, lat],
-          };
-        }
-
-        console.log(
-          `[${
-            property.address
-          }] Backfilling data (Lat/Lon: ${!!lat}, Zip: ${!!zip})`
-        );
-        await propertyStorage.updateProperty(property.id, updates);
-        updatedCount++;
-        continue; // Skip API call if we found data
-      }
-
-      // 4. If still missing spatial data OR zip code, call Google Maps API
+      // If still missing spatial data OR zip code, call Google Maps API
       if ((!lat || !lon || !zip) && property.city && property.state) {
         console.log(`[${property.address}] Fetching from Google Maps...`);
         try {
@@ -106,7 +47,7 @@ async function runEnrichment() {
             property.address,
             property.city,
             property.state,
-            property.postalCode || undefined
+            property.postalCode || undefined,
           );
 
           if (result) {

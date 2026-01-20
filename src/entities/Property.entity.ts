@@ -69,63 +69,6 @@ export class Property {
   @Column({ type: "text", nullable: true })
   foreclosure!: string | null;
 
-  @Column({ name: "attom_status", type: "text", default: "pending" })
-  attomStatus!: string;
-
-  @Column({ name: "attom_market_value", type: "integer", nullable: true })
-  attomMarketValue!: number | null;
-
-  @Column({ name: "attom_assessed_value", type: "integer", nullable: true })
-  attomAssessedValue!: number | null;
-
-  @Column({ name: "attom_year_built", type: "integer", nullable: true })
-  attomYearBuilt!: number | null;
-
-  @Column({ name: "attom_bldg_size", type: "integer", nullable: true })
-  attomBldgSize!: number | null;
-
-  @Column({ name: "attom_beds", type: "integer", nullable: true })
-  attomBeds!: number | null;
-
-  @Column({ name: "attom_baths", type: "real", nullable: true })
-  attomBaths!: number | null;
-
-  @Column({ name: "attom_lot_size", type: "real", nullable: true })
-  attomLotSize!: number | null;
-
-  @Column({ name: "attom_prop_class", type: "text", nullable: true })
-  attomPropClass!: string | null;
-
-  @Column({ name: "attom_last_sale_price", type: "integer", nullable: true })
-  attomLastSalePrice!: number | null;
-
-  @Column({ name: "attom_last_sale_date", type: "text", nullable: true })
-  attomLastSaleDate!: string | null;
-
-  @Column({ name: "attom_data", type: "jsonb", nullable: true })
-  attomData!: any;
-
-  @Column({ name: "attom_error", type: "text", nullable: true })
-  attomError!: string | null;
-
-  @Column({ name: "attom_avm_value", type: "integer", nullable: true })
-  attomAvmValue!: number | null;
-
-  @Column({ name: "attom_avm_high", type: "integer", nullable: true })
-  attomAvmHigh!: number | null;
-
-  @Column({ name: "attom_avm_low", type: "integer", nullable: true })
-  attomAvmLow!: number | null;
-
-  @Column({ name: "attom_avm_confidence", type: "integer", nullable: true })
-  attomAvmConfidence!: number | null;
-
-  @Column({ name: "attom_tax_amount", type: "integer", nullable: true })
-  attomTaxAmount!: number | null;
-
-  @Column({ name: "attom_tax_year", type: "integer", nullable: true })
-  attomTaxYear!: number | null;
-
   @Column({ name: "annual_taxes", type: "integer", nullable: true })
   annualTaxes!: number | null;
 
@@ -134,9 +77,6 @@ export class Property {
 
   @Column({ name: "monthly_hoa", type: "integer", nullable: true })
   monthlyHoa!: number | null;
-
-  @Column({ name: "attom_synced_at", type: "timestamp", nullable: true })
-  attomSyncedAt!: Date | null;
 
   @Column({ name: "rentcast_status", type: "text", default: "pending" })
   rentcastStatus!: string;
@@ -158,21 +98,6 @@ export class Property {
 
   @Column({ name: "rentcast_rent_high", type: "integer", nullable: true })
   rentcastRentHigh!: number | null;
-
-  @Column({ name: "rentcast_property_data", type: "jsonb", nullable: true })
-  rentcastPropertyData!: any;
-
-  @Column({ name: "rentcast_tax_history", type: "jsonb", nullable: true })
-  rentcastTaxHistory!: any;
-
-  @Column({ name: "rentcast_sale_comps", type: "jsonb", nullable: true })
-  rentcastSaleComps!: any;
-
-  @Column({ name: "rentcast_rent_comps", type: "jsonb", nullable: true })
-  rentcastRentComps!: any;
-
-  @Column({ name: "rentcast_market_data", type: "jsonb", nullable: true })
-  rentcastMarketData!: any;
 
   @Column({ name: "rentcast_error", type: "text", nullable: true })
   rentcastError!: string | null;

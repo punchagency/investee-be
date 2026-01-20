@@ -72,9 +72,6 @@ export class LoanApplication {
   @Column({ type: "jsonb", default: [] })
   documents!: any;
 
-  @Column({ name: "attom_data", type: "jsonb", nullable: true })
-  attomData!: any;
-
   @CreateDateColumn({ name: "submitted_at" })
   submittedAt!: Date;
 
