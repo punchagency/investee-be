@@ -14,13 +14,13 @@ import { DocumentChunk } from "./entities";
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?"
+    "DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
 
 export const AppDataSource = new DataSource({
   type: "postgres",
-  url: process.env.DATABASE_URL,
+  url: process.env.PROD_DATABASE_URL,
   synchronize: false, // We will sync manually after enabling extensions
   logging: process.env.NODE_ENV === "development",
   entities: [
