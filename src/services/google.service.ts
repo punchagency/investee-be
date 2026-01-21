@@ -13,7 +13,7 @@ export async function geocodeAddress(
   address: string,
   city: string,
   state: string,
-  zip?: string
+  zip?: string,
 ): Promise<GeocodeResult | null> {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
@@ -22,7 +22,6 @@ export async function geocodeAddress(
   }
 
   try {
-    const components = `postal_code:${zip}|country:US`;
     // Construct a robust address string
     let queryAddress = `${address}, ${city}, ${state}`;
     if (zip) queryAddress += ` ${zip}`;
@@ -36,7 +35,7 @@ export async function geocodeAddress(
 
     if (response.data.status !== "OK") {
       console.warn(
-        `Google Geocoding failed for ${queryAddress}: ${response.data.status} - ${response.data.error_message}`
+        `Google Geocoding failed for ${queryAddress}: ${response.data.status} - ${response.data.error_message}`,
       );
       return null;
     }
@@ -48,10 +47,15 @@ export async function geocodeAddress(
     let postalCode = zip;
     if (!postalCode) {
       const zipComponent = result.address_components.find((c: any) =>
-        c.types.includes("postal_code")
+        c.types.includes("postal_code"),
       );
       if (zipComponent) {
         postalCode = zipComponent.long_name;
+      } else {
+        console.warn(
+          `[GoogleService] No postal_code found for ${queryAddress}. Components:`,
+          JSON.stringify(result.address_components),
+        );
       }
     }
 

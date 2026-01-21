@@ -12,7 +12,7 @@ export class PropertyStorage {
   }
 
   async createProperty(
-    property: Partial<Omit<Property, "id" | "createdAt" | "updatedAt">>
+    property: Partial<Omit<Property, "id" | "createdAt" | "updatedAt">>,
   ): Promise<Property> {
     const created = this.propertyRepo.create(property);
     return await this.propertyRepo.save(created);
@@ -21,7 +21,7 @@ export class PropertyStorage {
   async createProperties(
     propertiesToInsert: Partial<
       Omit<Property, "id" | "createdAt" | "updatedAt">
-    >[]
+    >[],
   ): Promise<Property[]> {
     if (propertiesToInsert.length === 0) return [];
     const created = this.propertyRepo.create(propertiesToInsert);
@@ -38,6 +38,7 @@ export class PropertyStorage {
     city?: string;
     state?: string;
     zipCode?: string;
+    propertyType?: string;
     minPrice?: number;
     maxPrice?: number;
     minBeds?: number;
@@ -52,6 +53,10 @@ export class PropertyStorage {
     skipCount?: boolean;
     orderBy?: PropertyKeys;
     orderDirection?: "ASC" | "DESC";
+    excludeIds?: string[];
+    foreclosure?: string;
+    ownerOccupied?: string;
+    listedForSale?: string;
   }): Promise<[Property[], number]> {
     const qb = this.propertyRepo.createQueryBuilder("property");
     if (params?.select) {
@@ -67,13 +72,20 @@ export class PropertyStorage {
 
         qb.andWhere(
           "to_tsvector('english', property.city) @@ to_tsquery('english', :city)",
-          { city: `${sanitizedCity}:*` }
+          { city: `${sanitizedCity}:*` },
         );
       }
       if (params.state)
         qb.andWhere("property.state = :state", {
           state: params.state,
         });
+
+      if (params.propertyType) {
+        qb.andWhere("property.propertyType = :propertyType", {
+          propertyType: params.propertyType,
+        });
+      }
+
       if (params.zipCode)
         qb.andWhere("property.postalCode ILIKE :zipCode", {
           zipCode: `%${params.zipCode}%`,
@@ -119,9 +131,30 @@ export class PropertyStorage {
         if (sanitizedQuery) {
           qb.andWhere(
             `to_tsvector('english', coalesce(property.address, '') || ' ' || coalesce(property.city, '') || ' ' || coalesce(property.owner, '')) @@ to_tsquery('english', :ftsQuery)`,
-            { ftsQuery: sanitizedQuery }
+            { ftsQuery: sanitizedQuery },
           );
         }
+      }
+      if (params.foreclosure) {
+        qb.andWhere("property.foreclosure = :foreclosure", {
+          foreclosure: params.foreclosure,
+        });
+      }
+      if (params.ownerOccupied) {
+        qb.andWhere("property.ownerOccupied = :ownerOccupied", {
+          ownerOccupied: params.ownerOccupied,
+        });
+      }
+      if (params.listedForSale) {
+        qb.andWhere("property.listedForSale = :listedForSale", {
+          listedForSale: params.listedForSale,
+        });
+      }
+
+      if (params.excludeIds && params.excludeIds.length > 0) {
+        qb.andWhere("property.id NOT IN (:...excludeIds)", {
+          excludeIds: params.excludeIds,
+        });
       }
     }
 
@@ -142,16 +175,9 @@ export class PropertyStorage {
     return await qb.getManyAndCount();
   }
 
-  async getPropertiesByStatus(status: string): Promise<Property[]> {
-    return await this.propertyRepo.find({
-      where: { attomStatus: status },
-      order: { createdAt: "DESC" },
-    });
-  }
-
   async updateProperty(
     id: string,
-    updates: Partial<Property>
+    updates: Partial<Property>,
   ): Promise<Property | undefined> {
     const property = await this.propertyRepo.findOne({ where: { id } });
     if (!property) return undefined;
@@ -167,11 +193,12 @@ export class PropertyStorage {
     });
   }
 
-  async getPropertyByLocation(
+  async getPropertiesByLocation(
     latitude: number,
     longitude: number,
-    radiusKm: number = 50
-  ): Promise<Property | null> {
+    radiusKm: number = 50,
+    limit: number = 4,
+  ): Promise<Property[]> {
     const qb = this.propertyRepo.createQueryBuilder("property");
 
     // Convert km to meters for ST_DWithin
@@ -189,7 +216,7 @@ export class PropertyStorage {
         longitude,
         latitude,
         radiusMeters,
-      }
+      },
     );
 
     // Order by distance (nearest first)
@@ -198,10 +225,12 @@ export class PropertyStorage {
         property.location, 
         ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)
       )`,
-      "ASC"
+      "ASC",
     );
 
-    return await qb.getOne();
+    qb.take(limit);
+
+    return await qb.getMany();
   }
 }
 
