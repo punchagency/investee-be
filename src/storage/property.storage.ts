@@ -12,7 +12,7 @@ export class PropertyStorage {
   }
 
   async createProperty(
-    property: Partial<Omit<Property, "id" | "createdAt" | "updatedAt">>
+    property: Partial<Omit<Property, "id" | "createdAt" | "updatedAt">>,
   ): Promise<Property> {
     const created = this.propertyRepo.create(property);
     return await this.propertyRepo.save(created);
@@ -21,7 +21,7 @@ export class PropertyStorage {
   async createProperties(
     propertiesToInsert: Partial<
       Omit<Property, "id" | "createdAt" | "updatedAt">
-    >[]
+    >[],
   ): Promise<Property[]> {
     if (propertiesToInsert.length === 0) return [];
     const created = this.propertyRepo.create(propertiesToInsert);
@@ -54,6 +54,9 @@ export class PropertyStorage {
     orderBy?: PropertyKeys;
     orderDirection?: "ASC" | "DESC";
     excludeIds?: string[];
+    foreclosure?: string;
+    ownerOccupied?: string;
+    listedForSale?: string;
   }): Promise<[Property[], number]> {
     const qb = this.propertyRepo.createQueryBuilder("property");
     if (params?.select) {
@@ -69,7 +72,7 @@ export class PropertyStorage {
 
         qb.andWhere(
           "to_tsvector('english', property.city) @@ to_tsquery('english', :city)",
-          { city: `${sanitizedCity}:*` }
+          { city: `${sanitizedCity}:*` },
         );
       }
       if (params.state)
@@ -128,9 +131,24 @@ export class PropertyStorage {
         if (sanitizedQuery) {
           qb.andWhere(
             `to_tsvector('english', coalesce(property.address, '') || ' ' || coalesce(property.city, '') || ' ' || coalesce(property.owner, '')) @@ to_tsquery('english', :ftsQuery)`,
-            { ftsQuery: sanitizedQuery }
+            { ftsQuery: sanitizedQuery },
           );
         }
+      }
+      if (params.foreclosure) {
+        qb.andWhere("property.foreclosure = :foreclosure", {
+          foreclosure: params.foreclosure,
+        });
+      }
+      if (params.ownerOccupied) {
+        qb.andWhere("property.ownerOccupied = :ownerOccupied", {
+          ownerOccupied: params.ownerOccupied,
+        });
+      }
+      if (params.listedForSale) {
+        qb.andWhere("property.listedForSale = :listedForSale", {
+          listedForSale: params.listedForSale,
+        });
       }
 
       if (params.excludeIds && params.excludeIds.length > 0) {
@@ -159,7 +177,7 @@ export class PropertyStorage {
 
   async updateProperty(
     id: string,
-    updates: Partial<Property>
+    updates: Partial<Property>,
   ): Promise<Property | undefined> {
     const property = await this.propertyRepo.findOne({ where: { id } });
     if (!property) return undefined;
@@ -179,7 +197,7 @@ export class PropertyStorage {
     latitude: number,
     longitude: number,
     radiusKm: number = 50,
-    limit: number = 4
+    limit: number = 4,
   ): Promise<Property[]> {
     const qb = this.propertyRepo.createQueryBuilder("property");
 
@@ -198,7 +216,7 @@ export class PropertyStorage {
         longitude,
         latitude,
         radiusMeters,
-      }
+      },
     );
 
     // Order by distance (nearest first)
@@ -207,7 +225,7 @@ export class PropertyStorage {
         property.location, 
         ST_SetSRID(ST_MakePoint(:longitude, :latitude), 4326)
       )`,
-      "ASC"
+      "ASC",
     );
 
     qb.take(limit);

@@ -20,7 +20,7 @@ if (!process.env.DATABASE_URL) {
 
 export const AppDataSource = new DataSource({
   type: "postgres",
-  url: process.env.DATABASE_URL,
+  url: process.env.PROD_DATABASE_URL,
   synchronize: false, // We will sync manually after enabling extensions
   logging: process.env.NODE_ENV === "development",
   entities: [

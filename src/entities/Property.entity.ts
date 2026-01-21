@@ -60,14 +60,14 @@ export class Property {
   @Column({ type: "text", nullable: true })
   owner!: string | null;
 
-  @Column({ name: "owner_occupied", type: "text", nullable: true })
-  ownerOccupied!: string | null;
+  @Column({ name: "owner_occupied", type: "boolean", nullable: true })
+  ownerOccupied!: boolean | null;
 
-  @Column({ name: "listed_for_sale", type: "text", nullable: true })
-  listedForSale!: string | null;
+  @Column({ name: "listed_for_sale", type: "boolean", nullable: true })
+  listedForSale!: boolean | null;
 
-  @Column({ type: "text", nullable: true })
-  foreclosure!: string | null;
+  @Column({ type: "boolean", nullable: true })
+  foreclosure!: boolean | null;
 
   @Column({ name: "annual_taxes", type: "integer", nullable: true })
   annualTaxes!: number | null;
