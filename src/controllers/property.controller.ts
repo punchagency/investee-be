@@ -133,6 +133,13 @@ export const importProperties = async (req: Request, res: Response) => {
       Record<string, unknown>
     >;
 
+    const toBoolean = (val: unknown): boolean => {
+      if (!val) return false;
+      if (typeof val === "boolean") return val;
+      const s = String(val).toLowerCase().trim();
+      return ["yes", "y", "true", "1"].includes(s);
+    };
+
     const propertiesToInsert: Partial<
       Omit<Property, "id" | "createdAt" | "updatedAt">
     >[] = data.map((row) => ({
@@ -146,9 +153,9 @@ export const importProperties = async (req: Request, res: Response) => {
       estValue: Number(row["Est Value"]) || null,
       estEquity: Number(row["Est Equity $"]) || null,
       owner: String(row["Owner"] || ""),
-      ownerOccupied: row["Owner Occ?"] ? "Yes" : "No",
-      listedForSale: row["Listed for Sale?"] ? "Yes" : "No",
-      foreclosure: row["Foreclosure?"] ? "Yes" : "No",
+      ownerOccupied: toBoolean(row["Owner Occ?"]),
+      listedForSale: toBoolean(row["Listed for Sale?"]),
+      foreclosure: toBoolean(row["Foreclosure?"]),
     }));
 
     const importedProperties =
