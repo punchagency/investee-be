@@ -29,6 +29,9 @@ export const getAllProperties = async (req: Request, res: Response) => {
       limit,
       offset,
       propertyType,
+      foreclosure,
+      ownerOccupied,
+      listedForSale,
     } = req.query as any;
 
     const [allProperties, count] = await propertyStorage.getAllProperties({
@@ -51,6 +54,13 @@ export const getAllProperties = async (req: Request, res: Response) => {
       maxSqFt: maxSqFt ? Number(maxSqFt) : undefined,
       limit: limit ? Number(limit) : undefined,
       offset: offset ? Number(offset) : undefined,
+      foreclosure: foreclosure ? String(foreclosure).toUpperCase() : undefined,
+      ownerOccupied: ownerOccupied
+        ? String(ownerOccupied).toUpperCase()
+        : undefined,
+      listedForSale: listedForSale
+        ? String(listedForSale).toUpperCase()
+        : undefined,
     });
     res.json({ properties: allProperties, total: count });
   } catch (error) {
@@ -79,7 +89,7 @@ export const updateProperty = async (req: Request, res: Response) => {
   try {
     const updated = await propertyStorage.updateProperty(
       req.params.id,
-      req.body
+      req.body,
     );
     if (!updated) {
       res.status(404).json({ error: "Property not found" });
@@ -105,7 +115,7 @@ export const importProperties = async (req: Request, res: Response) => {
     const normalizedPath = path.normalize(filePath);
     const allowedPrefixes = ["attached_assets/", "attached_assets\\"];
     const isAllowed = allowedPrefixes.some((prefix) =>
-      normalizedPath.startsWith(prefix)
+      normalizedPath.startsWith(prefix),
     );
 
     if (!isAllowed || normalizedPath.includes("..")) {
@@ -145,9 +155,8 @@ export const importProperties = async (req: Request, res: Response) => {
       foreclosure: row["Foreclosure?"] ? "Yes" : "No",
     }));
 
-    const importedProperties = await propertyStorage.createProperties(
-      propertiesToInsert
-    );
+    const importedProperties =
+      await propertyStorage.createProperties(propertiesToInsert);
 
     res.json({
       success: true,
@@ -163,7 +172,7 @@ export const importProperties = async (req: Request, res: Response) => {
 // Enrich a single property with RentCast
 export const enrichPropertyWithRentcastById = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const property = await propertyStorage.getProperty(req.params.id);
@@ -192,7 +201,7 @@ export const enrichPropertyWithRentcastById = async (
       property.address,
       property.city || "",
       property.state || "CA",
-      property.postalCode
+      property.postalCode,
     );
 
     const updated = await propertyStorage.getProperty(req.params.id);
@@ -206,7 +215,7 @@ export const enrichPropertyWithRentcastById = async (
 // Enrich properties with RentCast (batch)
 export const enrichPropertiesWithRentcast = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const syncedCount = await propertyStorage.countRentcastSyncedProperties();
@@ -252,7 +261,7 @@ export const enrichPropertiesWithRentcast = async (
           property.address,
           property.city,
           property.state || "CA",
-          property.postalCode
+          property.postalCode,
         );
         await delay(1000);
       }
@@ -266,7 +275,7 @@ export const enrichPropertiesWithRentcast = async (
 // Get properties based on user location (IP/Geo)
 export const getPropertiesBasedOnUserLocation = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const location = req.location;
@@ -288,7 +297,7 @@ export const getPropertiesBasedOnUserLocation = async (
         latitude,
         longitude,
         50, // default radius
-        targetCount
+        targetCount,
       );
     }
 
