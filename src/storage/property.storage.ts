@@ -54,9 +54,9 @@ export class PropertyStorage {
     orderBy?: PropertyKeys;
     orderDirection?: "ASC" | "DESC";
     excludeIds?: string[];
-    foreclosure?: string;
-    ownerOccupied?: string;
-    listedForSale?: string;
+    foreclosure?: boolean;
+    ownerOccupied?: boolean;
+    listedForSale?: boolean;
   }): Promise<[Property[], number]> {
     const qb = this.propertyRepo.createQueryBuilder("property");
     if (params?.select) {
