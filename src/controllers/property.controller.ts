@@ -1,100 +1,13 @@
 import type { Request, Response } from "express";
 import { propertyStorage } from "../storage/property.storage";
-import { enrichPropertyWithAttom, delay } from "../services/attom.service";
+// delay helper
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 import { enrichPropertyWithRentcast } from "../services/rentcast.service";
 import { Property } from "../entities/Property.entity";
 import XLSX from "xlsx";
 import * as fs from "fs";
 import * as path from "path";
 import axios from "axios";
-
-const ATTOM_API_BASE = "https://api.gateway.attomdata.com/propertyapi/v1.0.0";
-
-// ATTOM Property Search API proxy
-export const searchProperty = async (req: Request, res: Response) => {
-  try {
-    const { address } = req.query;
-
-    if (!address || typeof address !== "string") {
-      res.status(400).json({ error: "Address is required" });
-      return;
-    }
-
-    const apiKey = process.env.ATTOM_API_KEY;
-    if (!apiKey) {
-      res.status(500).json({ error: "ATTOM API key not configured" });
-      return;
-    }
-
-    const response = await axios.get(
-      `${ATTOM_API_BASE}/property/basicprofile?address=${encodeURIComponent(
-        address
-      )}`,
-      {
-        headers: {
-          Accept: "application/json",
-          apikey: apiKey,
-        },
-        validateStatus: () => true,
-      }
-    );
-
-    if (response.status !== 200) {
-      if (response.status === 404) {
-        res.status(404).json({ error: "Property not found" });
-        return;
-      }
-      throw new Error(`ATTOM API returned ${response.status}`);
-    }
-
-    res.json(response.data);
-  } catch (error) {
-    console.error("Error searching property:", error);
-    res.status(500).json({ error: "Failed to search property" });
-  }
-};
-
-// ATTOM Radius Search API proxy
-export const searchPropertiesByRadius = async (req: Request, res: Response) => {
-  try {
-    const { lat, lng, radius, minbeds, maxbeds, propertytype } = req.query;
-
-    if (!lat || !lng) {
-      res.status(400).json({ error: "Latitude and longitude are required" });
-      return;
-    }
-
-    const apiKey = process.env.ATTOM_API_KEY;
-    if (!apiKey) {
-      res.status(500).json({ error: "ATTOM API key not configured" });
-      return;
-    }
-
-    let url = `${ATTOM_API_BASE}/property/snapshot?latitude=${lat}&longitude=${lng}&radius=${
-      radius || 1
-    }`;
-    if (minbeds) url += `&minbeds=${minbeds}`;
-    if (maxbeds) url += `&maxbeds=${maxbeds}`;
-    if (propertytype) url += `&propertytype=${propertytype}`;
-
-    const response = await axios.get(url, {
-      headers: {
-        Accept: "application/json",
-        apikey: apiKey,
-      },
-      validateStatus: () => true,
-    });
-
-    if (response.status !== 200) {
-      throw new Error(`ATTOM API returned ${response.status}`);
-    }
-
-    res.json(response.data);
-  } catch (error) {
-    console.error("Error searching properties by radius:", error);
-    res.status(500).json({ error: "Failed to search properties" });
-  }
-};
 
 // Get all properties
 export const getAllProperties = async (req: Request, res: Response) => {
@@ -115,15 +28,22 @@ export const getAllProperties = async (req: Request, res: Response) => {
       maxSqFt,
       limit,
       offset,
+      propertyType,
+      foreclosure,
+      ownerOccupied,
+      listedForSale,
     } = req.query as any;
 
     const [allProperties, count] = await propertyStorage.getAllProperties({
       query:
         (search ? String(search) : undefined) ||
         (query ? String(query) : undefined),
-      city: city ? String(city) : undefined,
-      state: state ? String(state) : undefined,
+      city: city ? String(city).toUpperCase() : undefined,
+      state: state ? String(state).toUpperCase() : undefined,
       zipCode: zipCode ? String(zipCode) : undefined,
+      propertyType: propertyType
+        ? String(propertyType).toUpperCase()
+        : undefined,
       minPrice: minPrice ? Number(minPrice) : undefined,
       maxPrice: maxPrice ? Number(maxPrice) : undefined,
       minBeds: minBeds ? Number(minBeds) : undefined,
@@ -134,6 +54,13 @@ export const getAllProperties = async (req: Request, res: Response) => {
       maxSqFt: maxSqFt ? Number(maxSqFt) : undefined,
       limit: limit ? Number(limit) : undefined,
       offset: offset ? Number(offset) : undefined,
+      foreclosure: foreclosure ? String(foreclosure).toUpperCase() : undefined,
+      ownerOccupied: ownerOccupied
+        ? String(ownerOccupied).toUpperCase()
+        : undefined,
+      listedForSale: listedForSale
+        ? String(listedForSale).toUpperCase()
+        : undefined,
     });
     res.json({ properties: allProperties, total: count });
   } catch (error) {
@@ -162,7 +89,7 @@ export const updateProperty = async (req: Request, res: Response) => {
   try {
     const updated = await propertyStorage.updateProperty(
       req.params.id,
-      req.body
+      req.body,
     );
     if (!updated) {
       res.status(404).json({ error: "Property not found" });
@@ -188,7 +115,7 @@ export const importProperties = async (req: Request, res: Response) => {
     const normalizedPath = path.normalize(filePath);
     const allowedPrefixes = ["attached_assets/", "attached_assets\\"];
     const isAllowed = allowedPrefixes.some((prefix) =>
-      normalizedPath.startsWith(prefix)
+      normalizedPath.startsWith(prefix),
     );
 
     if (!isAllowed || normalizedPath.includes("..")) {
@@ -226,12 +153,10 @@ export const importProperties = async (req: Request, res: Response) => {
       ownerOccupied: row["Owner Occ?"] ? "Yes" : "No",
       listedForSale: row["Listed for Sale?"] ? "Yes" : "No",
       foreclosure: row["Foreclosure?"] ? "Yes" : "No",
-      attomStatus: "pending",
     }));
 
-    const importedProperties = await propertyStorage.createProperties(
-      propertiesToInsert
-    );
+    const importedProperties =
+      await propertyStorage.createProperties(propertiesToInsert);
 
     res.json({
       success: true,
@@ -244,92 +169,10 @@ export const importProperties = async (req: Request, res: Response) => {
   }
 };
 
-// Enrich all properties with ATTOM data
-export const enrichPropertiesWithAttom = async (
-  req: Request,
-  res: Response
-) => {
-  try {
-    const { force } = req.body || {};
-    let toEnrich;
-    let total;
-
-    if (force) {
-      [toEnrich, total] = await propertyStorage.getAllProperties();
-    } else {
-      const pendingProperties = await propertyStorage.getPropertiesByStatus(
-        "pending"
-      );
-      const rateLimitedProperties = await propertyStorage.getPropertiesByStatus(
-        "rate_limited"
-      );
-      toEnrich = [...pendingProperties, ...rateLimitedProperties];
-      total = toEnrich.length;
-    }
-
-    if (total === 0) {
-      res.json({
-        success: true,
-        message: "No properties to enrich",
-        enriched: 0,
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      message: `Enrichment started for ${toEnrich.length} properties`,
-      total: toEnrich.length,
-    });
-
-    for (const property of toEnrich) {
-      if (property.address && property.city) {
-        await enrichPropertyWithAttom(
-          property.id,
-          property.address,
-          property.city,
-          property.state || "CA"
-        );
-        await delay(500);
-      }
-    }
-  } catch (error) {
-    console.error("Error enriching properties:", error);
-    res.status(500).json({ error: "Failed to enrich properties" });
-  }
-};
-
-// Enrich a single property with ATTOM
-export const enrichPropertyWithAttomById = async (
-  req: Request,
-  res: Response
-) => {
-  try {
-    const property = await propertyStorage.getProperty(req.params.id);
-    if (!property) {
-      res.status(404).json({ error: "Property not found" });
-      return;
-    }
-
-    await enrichPropertyWithAttom(
-      property.id,
-      property.address,
-      property.city || "",
-      property.state || "CA"
-    );
-
-    const updated = await propertyStorage.getProperty(req.params.id);
-    res.json(updated);
-  } catch (error) {
-    console.error("Error enriching property:", error);
-    res.status(500).json({ error: "Failed to enrich property" });
-  }
-};
-
 // Enrich a single property with RentCast
 export const enrichPropertyWithRentcastById = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const property = await propertyStorage.getProperty(req.params.id);
@@ -358,7 +201,7 @@ export const enrichPropertyWithRentcastById = async (
       property.address,
       property.city || "",
       property.state || "CA",
-      property.postalCode
+      property.postalCode,
     );
 
     const updated = await propertyStorage.getProperty(req.params.id);
@@ -372,7 +215,7 @@ export const enrichPropertyWithRentcastById = async (
 // Enrich properties with RentCast (batch)
 export const enrichPropertiesWithRentcast = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const syncedCount = await propertyStorage.countRentcastSyncedProperties();
@@ -418,7 +261,7 @@ export const enrichPropertiesWithRentcast = async (
           property.address,
           property.city,
           property.state || "CA",
-          property.postalCode
+          property.postalCode,
         );
         await delay(1000);
       }
@@ -432,43 +275,51 @@ export const enrichPropertiesWithRentcast = async (
 // Get properties based on user location (IP/Geo)
 export const getPropertiesBasedOnUserLocation = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   try {
     const location = req.location;
+    const targetCount = 4;
+    let properties: any[] = [];
+    let locationData: any = null;
 
-    if (!location) {
-      // If no location found, return empty list or maybe defaults
-      // For now, return empty to indicate no location context
-      res.json({
-        properties: [],
-        location: null,
-        message: "No location data available",
-      });
-      return;
+    if (location && location.ll && Array.isArray(location.ll)) {
+      const [latitude, longitude] = location.ll;
+      locationData = {
+        latitude,
+        longitude,
+        city: location.city,
+        state: location.region,
+      };
+
+      // 1. Try to get properties by location
+      properties = await propertyStorage.getPropertiesByLocation(
+        latitude,
+        longitude,
+        50, // default radius
+        targetCount,
+      );
     }
 
-    const { ll } = location;
+    // 2. If we don't have enough (or location was missing), fetch generic ones to fill the gaps
+    if (properties.length < targetCount) {
+      const needed = targetCount - properties.length;
+      const existingIds = properties.map((p) => p.id);
 
-    if (!ll || ll === "Unknown" || !Array.isArray(ll)) {
-      res.json({
-        properties: [],
-        location: null,
-        message: "No specific location coordinates available",
+      const [fallbackProperties] = await propertyStorage.getAllProperties({
+        limit: needed,
+        excludeIds: existingIds.length > 0 ? existingIds : undefined,
+        orderBy: "createdAt",
+        orderDirection: "DESC",
       });
-      return;
+
+      properties = [...properties, ...fallbackProperties];
     }
-
-    const [latitude, longitude] = ll;
-
-    const property = await propertyStorage.getPropertyByLocation(
-      latitude,
-      longitude
-    );
 
     res.json({
-      property,
-      found: !!property,
+      properties,
+      found: properties.length > 0,
+      location: locationData,
     });
   } catch (error) {
     console.error("Error fetching properties by location:", error);
