@@ -1,4 +1,5 @@
 import { propertyStorage } from "../storage/property.storage";
+import { VendorStorage } from "../storage/vendor.storage";
 import { ragService } from "../services/rag.service";
 
 /**
@@ -99,6 +100,51 @@ export const AI_TOOLS = [
       },
     },
   },
+  {
+    type: "function" as const,
+    function: {
+      name: "search_vendors",
+      description:
+        "Search for service providers and vendors (e.g., plumbers, electricians, inspectors) in the Investee network. Filter by location, category, rating, and verification status.",
+      parameters: {
+        type: "object",
+        properties: {
+          search: {
+            type: "string",
+            description:
+              "General search term for name or description (e.g., 'contractor', 'roof repair').",
+          },
+          category: {
+            type: "string",
+            description:
+              "Specific vendor category (e.g., 'Plumber', 'Electrician'). must be in all lowercase",
+          },
+          city: {
+            type: "string",
+            description: "City name.",
+          },
+          state: {
+            type: "string",
+            description: "State abbreviation (e.g., 'TX').",
+          },
+          verified: {
+            type: "boolean",
+            description: "Filter for verified vendors only.",
+          },
+          minRating: {
+            type: "number",
+            description: "Minimum rating (0-5).",
+          },
+          price: {
+            type: "integer",
+            enum: [1, 2, 3, 4],
+            description: "Price range indicator. 1=$, 2=$$, 3=$$$, 4=$$$$",
+          },
+        },
+        required: [],
+      },
+    },
+  },
 ];
 
 /**
@@ -166,6 +212,37 @@ export async function executeTool(
           type: p.propertyType,
           owner: p.owner,
           propertyUrl: `${process.env.FRONTEND_URL}/property/${p.id}`,
+        }));
+      }
+
+      case "search_vendors": {
+        const vendors = await VendorStorage.getAllVendors({
+          search: args.search,
+          category: args.category ? args.category.toLowerCase() : undefined,
+          city: args.city,
+          state: args.state,
+          verified: args.verified,
+          minRating: args.minRating,
+          price: args.price,
+        });
+
+        if (vendors.length === 0) {
+          return {
+            message: "No vendors found matching your criteria.",
+          };
+        }
+
+        return vendors.map((v) => ({
+          id: v.id,
+          name: v.name,
+          category: v.category,
+          description: v.description,
+          city: v.city,
+          state: v.state,
+          rating: v.rating,
+          verified: v.verified,
+          phone: v.phone,
+          email: v.email,
         }));
       }
 

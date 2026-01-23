@@ -5,7 +5,34 @@ import logger from "../utils/logger";
 export const VendorController = {
   async getAllVendors(req: Request, res: Response) {
     try {
-      const vendors = await VendorStorage.getAllVendors();
+      const {
+        search,
+        category,
+        city,
+        state,
+        verified,
+        licensed,
+        insured,
+        minRating,
+        price,
+        minYearsInBusiness,
+      } = req.query as any;
+
+      const vendors = await VendorStorage.getAllVendors({
+        search: search ? String(search) : undefined,
+        category: category ? String(category) : undefined,
+        city: city ? String(city) : undefined,
+        state: state ? String(state) : undefined,
+        verified: verified ? verified === "true" : undefined,
+        licensed: licensed ? licensed === "true" : undefined,
+        insured: insured ? insured === "true" : undefined,
+        minRating: minRating ? Number(minRating) : undefined,
+        price: price ? Number(price) : undefined,
+        minYearsInBusiness: minYearsInBusiness
+          ? Number(minYearsInBusiness)
+          : undefined,
+      });
+
       return res.json({ success: true, data: vendors });
     } catch (error) {
       logger.error(error, "Error fetching vendors");
