@@ -260,6 +260,48 @@
 
 ---
 
+## Vendor Endpoints
+
+### Get All Vendors
+
+- **GET** `/vendors`
+- **Query Params**:
+  - `search`: Search name/description (FTS)
+  - `category`: Vendor category
+  - `city`: City name
+  - `state`: State code
+  - `verified`: `true`/`false`
+  - `licensed`: `true`/`false`
+  - `insured`: `true`/`false`
+  - `minRating`: Minimum rating (number)
+  - `price`: Price range indicator (1=$, 2=$$, 3=$$$, 4=$$$$)
+  - `minYearsInBusiness`: Minimum years in business
+- **Response**: Array of vendors filtered by criteria
+
+### Get Vendor by ID
+
+- **GET** `/vendors/:id`
+- **Response**: Vendor object
+
+### Create Vendor
+
+- **POST** `/vendors`
+- **Body**: Vendor data
+- **Response**: Created vendor
+
+### Update Vendor
+
+- **PATCH** `/vendors/:id`
+- **Body**: Partial vendor data
+- **Response**: Updated vendor
+
+### Delete Vendor
+
+- **DELETE** `/vendors/:id`
+- **Response**: 204 No Content
+
+---
+
 ## Property Alert Endpoints
 
 ### Get All Alerts

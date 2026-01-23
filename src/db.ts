@@ -60,6 +60,11 @@ export const initializeDatabase = async () => {
       USING GIN (to_tsvector('english', coalesce(address, '') || ' ' || coalesce(city, '') || ' ' || coalesce(owner, '')));
     `);
 
+    await AppDataSource.query(`
+      CREATE INDEX IF NOT EXISTS idx_vendor_fts ON vendors
+      USING GIN (to_tsvector('english', coalesce(name, '') || ' ' || coalesce(description, '')));
+    `);
+
     // Add indexes for specific filters (City = FTS for flexible search, State = Composite for speed/sorting)
     await AppDataSource.query(`
       CREATE INDEX IF NOT EXISTS idx_property_state_created_at ON properties (state, created_at DESC);
