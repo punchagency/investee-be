@@ -7,6 +7,7 @@ import {
   verifyAccessToken,
   verifyRefreshToken,
 } from "../utils/jwt";
+import { verifyGoogleToken } from "../services/google.service";
 import logger from "../utils/logger";
 
 const SALT_ROUNDS = 10;
@@ -326,9 +327,106 @@ export const getCurrentUser = async (req: Request, res: Response) => {
     }
   } catch (error) {
     logger.error({ error }, "Error fetching user");
-    res.status(500).json({
+  }
+};
+
+export const googleAuth = async (req: Request, res: Response) => {
+  try {
+    const { credential } = req.body;
+
+    // 1. Verify the token with Google
+    const payload = await verifyGoogleToken(credential);
+
+    if (!payload || !payload.email) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid Google token",
+      });
+    }
+
+    const { email, given_name, family_name, picture, sub: googleId } = payload;
+
+    // 2. Check if user exists by Google ID
+    let user = await userStorage.getUserByGoogleId(googleId);
+
+    // 3. If not, check by email (to link accounts)
+    if (!user) {
+      user = await userStorage.getUserByEmail(email);
+
+      if (user) {
+        // Link existing user to Google ID
+        user = await userStorage.upsertUser({
+          id: user.id,
+          googleId,
+          profileImageUrl: user.profileImageUrl || picture,
+        });
+      }
+    }
+    // 4. If still not found, create new user
+    if (!user) {
+      user = await userStorage.upsertUser({
+        email,
+        firstName: given_name || "",
+        lastName: family_name || "",
+        profileImageUrl: picture,
+        role: "user",
+        googleId,
+      });
+    }
+
+    // 5. Generate Tokens
+    const accessToken = generateAccessToken(user.id, user.email!, user.role);
+    const refreshToken = generateRefreshToken(user.id, user.email!, user.role);
+
+    // 6. Set Cookies & Return Response
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure:
+        process.env.COOKIE_SAME_SITE === "none" ||
+        process.env.NODE_ENV === "production",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      sameSite:
+        (process.env.COOKIE_SAME_SITE as "none" | "lax" | "strict") || "lax",
+      path: "/",
+      domain: process.env.COOKIE_DOMAIN,
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure:
+        process.env.COOKIE_SAME_SITE === "none" ||
+        process.env.NODE_ENV === "production",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      sameSite:
+        (process.env.COOKIE_SAME_SITE as "none" | "lax" | "strict") || "lax",
+      path: "/api/auth/refresh-token",
+      domain: process.env.COOKIE_DOMAIN,
+    });
+
+    logger.info({ email, userId: user.id }, "Google login successful");
+
+    return res.status(200).json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        profileImageUrl: user.profileImageUrl,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+      tokens: {
+        accessToken,
+        refreshToken,
+      },
+    });
+  } catch (error) {
+    logger.error({ error }, "Google Auth Error");
+    return res.status(500).json({
       success: false,
-      error: "Failed to fetch user",
+      error: "Authentication failed",
     });
   }
 };
