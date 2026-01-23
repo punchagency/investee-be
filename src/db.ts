@@ -20,7 +20,7 @@ if (!process.env.DATABASE_URL) {
 
 export const AppDataSource = new DataSource({
   type: "postgres",
-  url: process.env.PROD_DATABASE_URL,
+  url: process.env.DATABASE_URL,
   synchronize: false, // We will sync manually after enabling extensions
   logging: process.env.NODE_ENV === "development",
   entities: [
@@ -58,6 +58,11 @@ export const initializeDatabase = async () => {
     await AppDataSource.query(`
       CREATE INDEX IF NOT EXISTS idx_property_fts ON properties
       USING GIN (to_tsvector('english', coalesce(address, '') || ' ' || coalesce(city, '') || ' ' || coalesce(owner, '')));
+    `);
+
+    await AppDataSource.query(`
+      CREATE INDEX IF NOT EXISTS idx_vendor_fts ON vendors
+      USING GIN (to_tsvector('english', coalesce(name, '') || ' ' || coalesce(description, '')));
     `);
 
     // Add indexes for specific filters (City = FTS for flexible search, State = Composite for speed/sorting)
