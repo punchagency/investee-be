@@ -9,13 +9,14 @@ import {
 } from "../utils/jwt";
 import { verifyGoogleToken } from "../services/google.service";
 import logger from "../utils/logger";
+import { UserRole } from "../entities/User.entity";
 
 const SALT_ROUNDS = 10;
 
 // Register new user
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, firstName, lastName } = req.body;
+    const { email, password, firstName, lastName, role } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -49,7 +50,7 @@ export const register = async (req: Request, res: Response) => {
       firstName: firstName || null,
       lastName: lastName || null,
       profileImageUrl: null,
-      role: "user", // Default role
+      role: role ? (role as UserRole) : undefined,
     });
 
     logger.info({ email, userId: user.id }, "User registered successfully");
@@ -162,10 +163,6 @@ export const login = async (req: Request, res: Response) => {
         firstName: user.firstName,
         lastName: user.lastName,
         profileImageUrl: user.profileImageUrl,
-      },
-      tokens: {
-        accessToken,
-        refreshToken,
       },
     });
   } catch (error) {
@@ -364,12 +361,13 @@ export const googleAuth = async (req: Request, res: Response) => {
     }
     // 4. If still not found, create new user
     if (!user) {
+      const { role } = req.body; // Check if role is provided in body alongside google credential
       user = await userStorage.upsertUser({
         email,
         firstName: given_name || "",
         lastName: family_name || "",
         profileImageUrl: picture,
-        role: "user",
+        role: role ? (role as UserRole) : undefined,
         googleId,
       });
     }
@@ -417,16 +415,71 @@ export const googleAuth = async (req: Request, res: Response) => {
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
       },
-      tokens: {
-        accessToken,
-        refreshToken,
-      },
     });
   } catch (error) {
     logger.error({ error }, "Google Auth Error");
     return res.status(500).json({
       success: false,
       error: "Authentication failed",
+    });
+  }
+};
+
+// Set User Role (Onboarding)
+export const setRole = async (req: Request, res: Response) => {
+  try {
+    // Cast to any to access user from middleware
+    const userId = (req as any).user?.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: "Unauthorized",
+      });
+    }
+
+    const { role } = req.body;
+
+    // Validate role
+    if (!role || !Object.values(UserRole).includes(role as UserRole)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid role. Valid values are: ${Object.values(UserRole).join(", ")}`,
+      });
+    }
+
+    // Security: Prevent setting admin role
+    if (role === UserRole.ADMIN) {
+      return res.status(403).json({
+        success: false,
+        error: "Cannot set admin role via this endpoint",
+      });
+    }
+
+    logger.info({ userId, role }, "Setting user role");
+
+    // Update user
+    const updatedUser = await userStorage.upsertUser({
+      id: userId,
+      role: role as UserRole,
+    });
+
+    return res.json({
+      success: true,
+      message: "Role updated successfully",
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        role: updatedUser.role,
+      },
+    });
+  } catch (error) {
+    logger.error({ error }, "Set Role Error");
+    return res.status(500).json({
+      success: false,
+      error: "Failed to set role",
     });
   }
 };

@@ -53,6 +53,8 @@ export class PropertyStorage {
     skipCount?: boolean;
     orderBy?: PropertyKeys;
     orderDirection?: "ASC" | "DESC";
+    minDscr?: number;
+    maxDscr?: number;
     excludeIds?: string[];
     foreclosure?: boolean;
     ownerOccupied?: boolean;
@@ -119,6 +121,12 @@ export class PropertyStorage {
         qb.andWhere("property.sqFt >= :minSqFt", { minSqFt: params.minSqFt });
       if (params.maxSqFt)
         qb.andWhere("property.sqFt <= :maxSqFt", { maxSqFt: params.maxSqFt });
+
+      // DSCR Filters
+      if (params.minDscr)
+        qb.andWhere("property.dscr >= :minDscr", { minDscr: params.minDscr });
+      if (params.maxDscr)
+        qb.andWhere("property.dscr <= :maxDscr", { maxDscr: params.maxDscr });
 
       if (params.query) {
         const sanitizedQuery = params.query

@@ -12,6 +12,14 @@ import { PropertyFavorite } from "./PropertyFavorite.entity";
 import { LoanApplication } from "./LoanApplication.entity";
 import { Vendor } from "./Vendor.entity";
 
+export enum UserRole {
+  USER = "user",
+  ADMIN = "admin",
+  VENDOR = "vendor",
+  LENDER = "lender",
+  OWNER = "owner",
+}
+
 @Entity("users")
 export class User {
   @PrimaryGeneratedColumn("uuid")
@@ -32,8 +40,12 @@ export class User {
   @Column({ name: "last_name", type: "varchar", nullable: true })
   lastName!: string | null;
 
-  @Column({ type: "varchar", default: "user" })
-  role!: string; // 'user' | 'admin' | 'service_role'
+  @Column({
+    type: "enum",
+    enum: UserRole,
+    nullable: true,
+  })
+  role!: UserRole;
 
   @Column({ name: "profile_image_url", type: "varchar", nullable: true })
   profileImageUrl!: string | null;
