@@ -63,6 +63,9 @@ export const initializeDatabase = async () => {
     await AppDataSource.query(`
       CREATE INDEX IF NOT EXISTS idx_vendor_fts ON vendors
       USING GIN (to_tsvector('english', coalesce(name, '') || ' ' || coalesce(description, '')));
+      CREATE INDEX IF NOT EXISTS idx_vendor_category ON vendors (category);
+      CREATE INDEX IF NOT EXISTS idx_vendor_city ON vendors (city);
+      CREATE INDEX IF NOT EXISTS idx_vendor_state ON vendors (state);
     `);
 
     // Add indexes for specific filters (City = FTS for flexible search, State = Composite for speed/sorting)
