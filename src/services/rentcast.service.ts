@@ -9,7 +9,7 @@ const RENTCAST_API_BASE = "https://api.rentcast.io/v1";
 function generateGoogleMapsUrl(
   address: string,
   city?: string,
-  state?: string
+  state?: string,
 ): string {
   const fullAddress = city && state ? `${address}, ${city}, ${state}` : address;
   const encoded = encodeURIComponent(fullAddress);
@@ -21,7 +21,7 @@ export async function enrichPropertyWithRentcast(
   address: string,
   city: string,
   state: string,
-  postalCode?: string | null
+  postalCode?: string | null,
 ): Promise<void> {
   const apiKey = process.env.RENTCAST_API_KEY;
   if (!apiKey) {
@@ -46,15 +46,15 @@ export async function enrichPropertyWithRentcast(
     const [propertyResponse, valueResponse, rentResponse] = await Promise.all([
       axios.get(
         `${RENTCAST_API_BASE}/properties?address=${encodedAddress}`,
-        requestConfig
+        requestConfig,
       ),
       axios.get(
         `${RENTCAST_API_BASE}/avm/value?address=${encodedAddress}&compCount=0`,
-        requestConfig
+        requestConfig,
       ),
       axios.get(
         `${RENTCAST_API_BASE}/avm/rent/long-term?address=${encodedAddress}&compCount=0`,
-        requestConfig
+        requestConfig,
       ),
     ]);
 
@@ -70,6 +70,7 @@ export async function enrichPropertyWithRentcast(
     let longitude: number | null = null;
     let zip: string | null = null;
     let annualTaxes: number | null = null;
+    let monthlyHoa: number | null = null;
 
     if (propertyResponse.status === 200) {
       const propData = propertyResponse.data;
@@ -79,17 +80,21 @@ export async function enrichPropertyWithRentcast(
         longitude = propertyData.longitude || null;
         zip = propertyData.zipCode || null;
 
-        if (propertyData.taxAssessments) {
-          const assessments = propertyData.taxAssessments;
-          const entries = Object.values(assessments) as any[];
+        if (propertyData.propertyTaxes) {
+          const taxes = propertyData.propertyTaxes;
+          const entries = Object.values(taxes) as any[];
           if (entries.length > 0) {
             const sorted = entries.sort(
-              (a, b) => (b.year || 0) - (a.year || 0)
+              (a, b) => (b.year || 0) - (a.year || 0),
             );
-            if (sorted.length > 0 && sorted[0].taxAmount) {
-              annualTaxes = sorted[0].taxAmount;
+            if (sorted.length > 0 && sorted[0].total) {
+              annualTaxes = sorted[0].total;
             }
           }
+        }
+
+        if (propertyData.hoa && propertyData.hoa.fee) {
+          monthlyHoa = propertyData.hoa.fee;
         }
       }
     }
@@ -123,6 +128,7 @@ export async function enrichPropertyWithRentcast(
       rentcastRentLow: rentLow,
       rentcastRentHigh: rentHigh,
       annualTaxes: annualTaxes,
+      monthlyHoa: monthlyHoa,
 
       rentcastError: null,
       rentcastSyncedAt: new Date(),
@@ -158,7 +164,7 @@ export async function getPropertyValueForAI(
   address: string,
   city: string,
   state: string,
-  postalCode?: string
+  postalCode?: string,
 ): Promise<{
   success: boolean;
   data?: any;
@@ -183,7 +189,7 @@ export async function getPropertyValueForAI(
       {
         headers: { Accept: "application/json", "X-Api-Key": apiKey },
         validateStatus: () => true,
-      }
+      },
     );
 
     if (response.status === 429) {
@@ -232,7 +238,7 @@ export async function getRentEstimateForAI(
   address: string,
   city: string,
   state: string,
-  postalCode?: string
+  postalCode?: string,
 ): Promise<{
   success: boolean;
   data?: any;
@@ -257,7 +263,7 @@ export async function getRentEstimateForAI(
       {
         headers: { Accept: "application/json", "X-Api-Key": apiKey },
         validateStatus: () => true,
-      }
+      },
     );
 
     if (response.status === 429) {
@@ -316,7 +322,7 @@ export async function getMarketOverviewForAI(zipCode: string): Promise<{
       {
         headers: { Accept: "application/json", "X-Api-Key": apiKey },
         validateStatus: () => true,
-      }
+      },
     );
 
     if (response.status !== 200) {

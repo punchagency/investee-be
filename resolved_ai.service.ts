@@ -2,7 +2,6 @@ import OpenAI from "openai";
 import type { Response } from "express";
 import { aiStorage } from "../storage/ai.storage";
 import { AI_TOOLS, executeTool } from "../utils/ai.utils";
-import { ragService } from "./rag.service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -12,11 +11,8 @@ const CINDEE_SYSTEM_MESSAGE = `You are Cindee, the intelligent and friendly AI a
 
 ## YOUR IDENTITY & TONE
 - **Persona:** You are a female sales professional who is warm, chatty, and enthusiastic about real estate.
-## KNOWLEDGE BASE INSTRUCTIONS
-- You have access to a tool called \`search_knowledge_base\`.
-- use this tool when the user asks a question about rules, limits, guidelines, or specific document content (e.g., "What is the max LTV?", "Show me the appraisal guide").
-- If the tool returns relevant content, use it and cite the source.
-- If the tool returns no results, fall back to your general knowledge but verify if it contradicts local rules.
+- **Vibe:** You are authoritative but highly approachable. Think of yourself as a helpful guide, not a robotic search engine.
+- **Communication Style:** Do NOT be concise. Be conversational, detailed, and expressive. Use natural transitions and full sentences.
 
 ## CRITICAL RULES
 1. **PRIORITIZE LOCAL DB:** ALWAYS start with \`search_local_properties\`. This is your PRIMARY source of truth.
@@ -28,10 +24,8 @@ const CINDEE_SYSTEM_MESSAGE = `You are Cindee, the intelligent and friendly AI a
 3. **CAPITALIZATION:** ALWAYS convert \`city\`, \`state\`, and \`query\` parameters to **UPPERCASE** before calling tools.
    - Example: \`city='AUSTIN'\`, \`state='TX'\`, \`query='MAIN ST'\`.
 4. **URLS:** NEVER invent a URL. You MUST use the exact \`propertyUrl\` string provided in the tool result.
-   - Correct: \`[123 Main St](${process.env.FRONTEND_URL}/property/1)\` (from tool)
+   - Correct: \`[123 Main St](http://localhost:5173/property/1)\` (from tool)
    - Incorrect: \`[123 Main St](/property/1)\` (invented)
-   - **Comparison:** If a user asks for comparison, say: "If you want to see the full comparison of the properties, [click here](${process.env.FRONTEND_URL}/compare/{id1},{id2},{id3})".
-     - Constraints: Minimum 2 IDs, Maximum 3 IDs.
 
 ## SEARCH DECISION TREE (Follow Strictly)
 1. **Explicit City/State?** (e.g., "in Austin", "in TX")
@@ -75,7 +69,7 @@ Response: "I searched for 'Elm Street' and found these..."`;
  */
 export async function generateAgentChatCompletion(
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
-  res: Response,
+  res: Response
 ): Promise<void> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("OpenAI API key not configured");
@@ -85,14 +79,14 @@ export async function generateAgentChatCompletion(
   let iterationCount = 0;
 
   try {
-    // 1. Tool-based RAG (No auto-injection)
-    // The system prompt now instructs the model to call `search_knowledge_base` if needed.
-
-    // Ensure system message is always first (or updated if exists)
+    // Ensure system message is always first
     const messagesWithSystem =
       messages[0]?.role === "system"
         ? messages
-        : [{ role: "system", content: CINDEE_SYSTEM_MESSAGE }, ...messages];
+        : [
+            { role: "system" as const, content: CINDEE_SYSTEM_MESSAGE },
+            ...messages,
+          ];
 
     // Make a copy of messages array for manipulation
     const conversationMessages: any[] = [...messagesWithSystem];
@@ -103,7 +97,7 @@ export async function generateAgentChatCompletion(
       console.time(`[AI Agent] Iteration ${iterationCount} Stream`);
 
       const stream = await openai.chat.completions.create({
-        model: "ft:gpt-4o-mini-2024-07-18:punch:investee:CxVlnRzw",
+        model: "ft:gpt-4o-mini-2024-07-18:punch:salesapp:CvnbwBkT",
         messages: conversationMessages,
         tools: AI_TOOLS,
         tool_choice: "auto",
@@ -182,7 +176,7 @@ export async function generateAgentChatCompletion(
             tool_call_id: toolCall.id,
             content: JSON.stringify(result),
           };
-        }),
+        })
       );
 
       console.timeEnd(`[AI Agent] Iteration ${iterationCount} Tool Execution`);
@@ -203,7 +197,7 @@ export async function generateAgentChatCompletion(
  * Upload a file to OpenAI for fine-tuning
  */
 export async function uploadTrainingFile(
-  filePath: string,
+  filePath: string
 ): Promise<OpenAI.Files.FileObject | undefined> {
   try {
     const fs = await import("fs");
@@ -224,7 +218,7 @@ export async function uploadTrainingFile(
  */
 export async function createFineTuneJob(
   trainingFileId: string,
-  model: string = "gpt-4o-mini-2024-07-18",
+  model: string = "gpt-4o-mini-2024-07-18"
 ): Promise<OpenAI.FineTuning.Jobs.FineTuningJob> {
   try {
     const fineTune = await openai.fineTuning.jobs.create({

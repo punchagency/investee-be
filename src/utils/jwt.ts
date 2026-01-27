@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { UserRole } from "../entities/User.entity";
 
 const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-in-production";
@@ -9,13 +10,13 @@ const JWT_REFRESH_SECRET =
 export interface TokenPayload {
   userId: string;
   email: string;
-  role: string;
+  role: UserRole;
 }
 
 export const generateAccessToken = (
   userId: string,
   email: string,
-  role: string = "user",
+  role: UserRole,
 ): string => {
   return jwt.sign(
     { userId, email, role },
@@ -27,7 +28,7 @@ export const generateAccessToken = (
 export const generateRefreshToken = (
   userId: string,
   email: string,
-  role: string = "user",
+  role: UserRole,
 ): string => {
   return jwt.sign(
     { userId, email, role },

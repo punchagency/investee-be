@@ -1,4 +1,5 @@
 import { propertyStorage } from "../storage/property.storage";
+import { VendorStorage } from "../storage/vendor.storage";
 import { ragService } from "../services/rag.service";
 
 /**
@@ -38,6 +39,12 @@ export const AI_TOOLS = [
           maxBaths: { type: "number", description: "Maximum bathrooms" },
           minSqFt: { type: "number", description: "Minimum square footage" },
           maxSqFt: { type: "number", description: "Maximum square footage" },
+          minDscr: {
+            type: "number",
+            description:
+              "Minimum Debt Service Coverage Ratio (DSCR). Use 1.25 for cash flow positive.",
+          },
+          maxDscr: { type: "number", description: "Maximum DSCR." },
           limit: {
             type: "number",
             description: "Number of properties to return (default 5)",
@@ -48,7 +55,7 @@ export const AI_TOOLS = [
           },
           orderBy: {
             type: "string",
-            enum: ["estValue", "createdAt", "beds", "baths", "sqFt"],
+            enum: ["estValue", "createdAt", "beds", "baths", "sqFt", "dscr"],
             description: "Field to sort by (default: createdAt)",
           },
           orderDirection: {
@@ -99,6 +106,51 @@ export const AI_TOOLS = [
       },
     },
   },
+  {
+    type: "function" as const,
+    function: {
+      name: "search_vendors",
+      description:
+        "Search for service providers and vendors (e.g., plumbers, electricians, inspectors) in the Investee network. Filter by location, category, rating, and verification status.",
+      parameters: {
+        type: "object",
+        properties: {
+          search: {
+            type: "string",
+            description:
+              "General search term for name or description (e.g., 'contractor', 'roof repair').",
+          },
+          category: {
+            type: "string",
+            description:
+              "Specific vendor category (e.g., 'Plumber', 'Electrician'). must be in all lowercase",
+          },
+          city: {
+            type: "string",
+            description: "City name.",
+          },
+          state: {
+            type: "string",
+            description: "State abbreviation (e.g., 'TX').",
+          },
+          verified: {
+            type: "boolean",
+            description: "Filter for verified vendors only.",
+          },
+          minRating: {
+            type: "number",
+            description: "Minimum rating (0-5).",
+          },
+          price: {
+            type: "integer",
+            enum: [1, 2, 3, 4],
+            description: "Price range indicator. 1=$, 2=$$, 3=$$$, 4=$$$$",
+          },
+        },
+        required: [],
+      },
+    },
+  },
 ];
 
 /**
@@ -106,7 +158,7 @@ export const AI_TOOLS = [
  */
 export async function executeTool(
   toolName: string,
-  args: Record<string, any>
+  args: Record<string, any>,
 ): Promise<any> {
   try {
     switch (toolName) {
@@ -126,6 +178,8 @@ export async function executeTool(
           maxBaths: args.maxBaths,
           minSqFt: args.minSqFt,
           maxSqFt: args.maxSqFt,
+          minDscr: args.minDscr,
+          maxDscr: args.maxDscr,
           limit: args.limit || 5,
           offset: args.offset,
           skipCount: true,
@@ -143,6 +197,14 @@ export async function executeTool(
             "sqFt",
             "propertyType",
             "owner",
+            "dscr",
+            "listedForSale",
+            "ownerOccupied",
+            "foreclosure",
+            "annualTaxes",
+            "monthlyHoa",
+            "rentcastValueEstimate",
+            "rentcastRentEstimate",
           ],
         });
 
@@ -165,7 +227,46 @@ export async function executeTool(
           sqft: p.sqFt,
           type: p.propertyType,
           owner: p.owner,
+          dscr: p.dscr,
+          listedForSale: p.listedForSale,
+          ownerOccupied: p.ownerOccupied,
+          foreclosure: p.foreclosure,
+          taxes: p.annualTaxes,
+          hoa: p.monthlyHoa,
+          rentcastValue: p.rentcastValueEstimate,
+          rentcastRent: p.rentcastRentEstimate,
           propertyUrl: `${process.env.FRONTEND_URL}/property/${p.id}`,
+        }));
+      }
+
+      case "search_vendors": {
+        const vendors = await VendorStorage.getAllVendors({
+          search: args.search,
+          category: args.category ? args.category.toLowerCase() : undefined,
+          city: args.city,
+          state: args.state,
+          verified: args.verified,
+          minRating: args.minRating,
+          price: args.price,
+        });
+
+        if (vendors.length === 0) {
+          return {
+            message: "No vendors found matching your criteria.",
+          };
+        }
+
+        return vendors.map((v) => ({
+          id: v.id,
+          name: v.name,
+          category: v.category,
+          description: v.description,
+          city: v.city,
+          state: v.state,
+          rating: v.rating,
+          verified: v.verified,
+          phone: v.phone,
+          email: v.email,
         }));
       }
 

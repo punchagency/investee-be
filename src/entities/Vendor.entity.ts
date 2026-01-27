@@ -63,8 +63,8 @@ export class Vendor {
   @Column({ name: "service_areas", type: "simple-array", nullable: true })
   serviceAreas?: string[];
 
-  @Column({ name: "price_range", type: "varchar", length: 10, nullable: true })
-  priceRange?: string;
+  @Column({ name: "price", type: "int", nullable: true })
+  price?: number;
 
   @Column({ type: "varchar", length: 50, nullable: true })
   availability?: string;
