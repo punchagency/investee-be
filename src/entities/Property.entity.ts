@@ -111,6 +111,54 @@ export class Property {
   @UpdateDateColumn({ name: "updated_at" })
   updatedAt!: Date;
 
+  @Column({
+    type: "numeric",
+    precision: 10,
+    scale: 2,
+    generatedType: "STORED",
+    nullable: true,
+    asExpression: `
+      CASE 
+        -- Land / Agricultural: DSCR is N/A (NULL)
+        WHEN property_type IN ('LND', 'AGR', 'REC', 'LOT') THEN NULL
+
+        -- Residential & Commercial: Gross Rent / PITIA
+        -- Monthly Mortgage = Value * LTV * Monthly Rate Factor
+        -- Res: 75% LTV @ 7.5% (0.0069921)
+        -- Com: 65% LTV @ 8.5% (0.0076891)
+        -- Taxes fallback: 1.25% of Value / 12
+        -- Insurance fallback: 0.5% of Value / 12
+        -- HOA fallback: $350 for Condos, $0 for others
+        ELSE
+          (COALESCE(rentcast_rent_estimate, 0))::numeric
+          / NULLIF(
+            (
+              (COALESCE(est_value, 0) * 
+                CASE 
+                   WHEN property_type IN ('COM', 'IND', 'MFR', 'OFF', 'RET') THEN 0.65 
+                   ELSE 0.75 
+                END 
+                * 
+                CASE 
+                   WHEN property_type IN ('COM', 'IND', 'MFR', 'OFF', 'RET') THEN 0.0076891 
+                   ELSE 0.0069921 
+                END
+              )
+              + (COALESCE(annual_taxes, COALESCE(est_value, 0) * 0.0125) / 12.0)
+              + (COALESCE(annual_insurance, COALESCE(est_value, 0) * 0.005) / 12.0)
+              + COALESCE(monthly_hoa, 
+                  CASE 
+                    WHEN property_type = 'CND' THEN 350 
+                    ELSE 0 
+                  END
+                )
+            ), 0
+          )::numeric
+      END
+    `,
+  })
+  dscr!: number | null;
+
   @OneToMany(() => PropertyFavorite, (favorite) => favorite.property)
   favorites!: PropertyFavorite[];
 }
