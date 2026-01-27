@@ -32,6 +32,8 @@ export const getAllProperties = async (req: Request, res: Response) => {
       foreclosure,
       ownerOccupied,
       listedForSale,
+      minDscr,
+      maxDscr,
     } = req.query as any;
 
     const [allProperties, count] = await propertyStorage.getAllProperties({
@@ -57,6 +59,8 @@ export const getAllProperties = async (req: Request, res: Response) => {
       foreclosure: foreclosure ? Boolean(foreclosure) : undefined,
       ownerOccupied: ownerOccupied ? Boolean(ownerOccupied) : undefined,
       listedForSale: listedForSale ? Boolean(listedForSale) : undefined,
+      minDscr: minDscr ? Number(minDscr) : undefined,
+      maxDscr: maxDscr ? Number(maxDscr) : undefined,
     });
     res.json({ properties: allProperties, total: count });
   } catch (error) {
@@ -282,7 +286,7 @@ export const getPropertiesBasedOnUserLocation = async (
 ) => {
   try {
     const location = req.location;
-    const targetCount = 4;
+    const targetCount = 12;
     let properties: any[] = [];
     let locationData: any = null;
 

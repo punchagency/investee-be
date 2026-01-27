@@ -70,6 +70,7 @@ export async function enrichPropertyWithRentcast(
     let longitude: number | null = null;
     let zip: string | null = null;
     let annualTaxes: number | null = null;
+    let monthlyHoa: number | null = null;
 
     if (propertyResponse.status === 200) {
       const propData = propertyResponse.data;
@@ -79,17 +80,21 @@ export async function enrichPropertyWithRentcast(
         longitude = propertyData.longitude || null;
         zip = propertyData.zipCode || null;
 
-        if (propertyData.taxAssessments) {
-          const assessments = propertyData.taxAssessments;
-          const entries = Object.values(assessments) as any[];
+        if (propertyData.propertyTaxes) {
+          const taxes = propertyData.propertyTaxes;
+          const entries = Object.values(taxes) as any[];
           if (entries.length > 0) {
             const sorted = entries.sort(
               (a, b) => (b.year || 0) - (a.year || 0),
             );
-            if (sorted.length > 0 && sorted[0].taxAmount) {
-              annualTaxes = sorted[0].taxAmount;
+            if (sorted.length > 0 && sorted[0].total) {
+              annualTaxes = sorted[0].total;
             }
           }
+        }
+
+        if (propertyData.hoa && propertyData.hoa.fee) {
+          monthlyHoa = propertyData.hoa.fee;
         }
       }
     }
@@ -123,6 +128,7 @@ export async function enrichPropertyWithRentcast(
       rentcastRentLow: rentLow,
       rentcastRentHigh: rentHigh,
       annualTaxes: annualTaxes,
+      monthlyHoa: monthlyHoa,
 
       rentcastError: null,
       rentcastSyncedAt: new Date(),

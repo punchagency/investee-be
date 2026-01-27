@@ -39,6 +39,12 @@ export const AI_TOOLS = [
           maxBaths: { type: "number", description: "Maximum bathrooms" },
           minSqFt: { type: "number", description: "Minimum square footage" },
           maxSqFt: { type: "number", description: "Maximum square footage" },
+          minDscr: {
+            type: "number",
+            description:
+              "Minimum Debt Service Coverage Ratio (DSCR). Use 1.25 for cash flow positive.",
+          },
+          maxDscr: { type: "number", description: "Maximum DSCR." },
           limit: {
             type: "number",
             description: "Number of properties to return (default 5)",
@@ -49,7 +55,7 @@ export const AI_TOOLS = [
           },
           orderBy: {
             type: "string",
-            enum: ["estValue", "createdAt", "beds", "baths", "sqFt"],
+            enum: ["estValue", "createdAt", "beds", "baths", "sqFt", "dscr"],
             description: "Field to sort by (default: createdAt)",
           },
           orderDirection: {
@@ -172,6 +178,8 @@ export async function executeTool(
           maxBaths: args.maxBaths,
           minSqFt: args.minSqFt,
           maxSqFt: args.maxSqFt,
+          minDscr: args.minDscr,
+          maxDscr: args.maxDscr,
           limit: args.limit || 5,
           offset: args.offset,
           skipCount: true,
@@ -189,6 +197,14 @@ export async function executeTool(
             "sqFt",
             "propertyType",
             "owner",
+            "dscr",
+            "listedForSale",
+            "ownerOccupied",
+            "foreclosure",
+            "annualTaxes",
+            "monthlyHoa",
+            "rentcastValueEstimate",
+            "rentcastRentEstimate",
           ],
         });
 
@@ -211,6 +227,14 @@ export async function executeTool(
           sqft: p.sqFt,
           type: p.propertyType,
           owner: p.owner,
+          dscr: p.dscr,
+          listedForSale: p.listedForSale,
+          ownerOccupied: p.ownerOccupied,
+          foreclosure: p.foreclosure,
+          taxes: p.annualTaxes,
+          hoa: p.monthlyHoa,
+          rentcastValue: p.rentcastValueEstimate,
+          rentcastRent: p.rentcastRentEstimate,
           propertyUrl: `${process.env.FRONTEND_URL}/property/${p.id}`,
         }));
       }

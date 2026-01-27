@@ -19,6 +19,11 @@ export class UserStorage {
     return user || undefined;
   }
 
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    const user = await this.userRepo.findOne({ where: { googleId } });
+    return user || undefined;
+  }
+
   async getUserByEmailWithPassword(email: string): Promise<User | undefined> {
     const user = await this.userRepo
       .createQueryBuilder("user")
