@@ -282,7 +282,7 @@ export const getPropertiesBasedOnUserLocation = async (
 ) => {
   try {
     const location = req.location;
-    const targetCount = 4;
+    const targetCount = 12;
     let properties: any[] = [];
     let locationData: any = null;
 
