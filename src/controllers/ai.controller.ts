@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
-import { generateAgentChatCompletion } from "../services/ai.service";
+import {
+  generateAgentChatCompletion,
+  listFineTuningJobs,
+} from "../services/ai.service";
 
 /**
  * Generate a chat completion with agentic tool calling
@@ -23,7 +26,7 @@ export const createChatCompletion = async (req: Request, res: Response) => {
         msg &&
         typeof msg === "object" &&
         ["system", "user", "assistant"].includes(msg.role) &&
-        typeof msg.content === "string"
+        typeof msg.content === "string",
     );
 
     if (!isValid) {
@@ -65,7 +68,6 @@ export const createChatCompletion = async (req: Request, res: Response) => {
  */
 export const getFineTuningJobs = async (req: Request, res: Response) => {
   try {
-    const { listFineTuningJobs } = await import("../services/ai.service");
     const jobs = await listFineTuningJobs();
     res.json(jobs);
   } catch (error) {

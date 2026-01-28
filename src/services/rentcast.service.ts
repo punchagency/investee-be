@@ -43,13 +43,9 @@ export async function enrichPropertyWithRentcast(
       validateStatus: () => true,
     };
 
-    const [propertyResponse, valueResponse, rentResponse] = await Promise.all([
+    const [propertyResponse, rentResponse] = await Promise.all([
       axios.get(
         `${RENTCAST_API_BASE}/properties?address=${encodedAddress}`,
-        requestConfig,
-      ),
-      axios.get(
-        `${RENTCAST_API_BASE}/avm/value?address=${encodedAddress}&compCount=0`,
         requestConfig,
       ),
       axios.get(
@@ -99,16 +95,6 @@ export async function enrichPropertyWithRentcast(
       }
     }
 
-    let valueEstimate: number | null = null;
-    let valueLow: number | null = null;
-    let valueHigh: number | null = null;
-    if (valueResponse.status === 200) {
-      const valueData: any = valueResponse.data;
-      valueEstimate = valueData.price || null;
-      valueLow = valueData.priceLow || null;
-      valueHigh = valueData.priceHigh || null;
-    }
-
     let rentEstimate: number | null = null;
     let rentLow: number | null = null;
     let rentHigh: number | null = null;
@@ -121,9 +107,6 @@ export async function enrichPropertyWithRentcast(
 
     const updates: any = {
       rentcastStatus: "success",
-      rentcastValueEstimate: valueEstimate,
-      rentcastValueLow: valueLow,
-      rentcastValueHigh: valueHigh,
       rentcastRentEstimate: rentEstimate,
       rentcastRentLow: rentLow,
       rentcastRentHigh: rentHigh,
@@ -132,6 +115,8 @@ export async function enrichPropertyWithRentcast(
 
       rentcastError: null,
       rentcastSyncedAt: new Date(),
+      propertyData: propertyResponse.data,
+      propertyValuation: rentResponse.data,
     };
 
     if (zip) {

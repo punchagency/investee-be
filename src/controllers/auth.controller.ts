@@ -16,7 +16,8 @@ const SALT_ROUNDS = 10;
 // Register new user
 export const register = async (req: Request, res: Response) => {
   try {
-    const { email, password, firstName, lastName, role } = req.body;
+    const { email, password, firstName, lastName, phoneNumber, role } =
+      req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -49,6 +50,7 @@ export const register = async (req: Request, res: Response) => {
       password: hashedPassword,
       firstName: firstName || null,
       lastName: lastName || null,
+      phoneNumber: phoneNumber || null,
       profileImageUrl: null,
       role: role ? (role as UserRole) : undefined,
     });
@@ -63,6 +65,7 @@ export const register = async (req: Request, res: Response) => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        phoneNumber: user.phoneNumber,
       },
     });
   } catch (error) {
@@ -161,6 +164,7 @@ export const login = async (req: Request, res: Response) => {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
+        role: user.role,
         lastName: user.lastName,
         profileImageUrl: user.profileImageUrl,
       },
@@ -312,8 +316,10 @@ export const getCurrentUser = async (req: Request, res: Response) => {
           id: user.id,
           email: user.email,
           firstName: user.firstName,
+          role: user.role,
           lastName: user.lastName,
           profileImageUrl: user.profileImageUrl,
+          phoneNumber: user.phoneNumber,
         },
       });
     } else {
