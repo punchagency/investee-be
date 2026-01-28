@@ -40,6 +40,9 @@ export class User {
   @Column({ name: "last_name", type: "varchar", nullable: true })
   lastName!: string | null;
 
+  @Column({ name: "phone_number", type: "varchar", nullable: true })
+  phoneNumber!: string | null;
+
   @Column({
     type: "enum",
     enum: UserRole,

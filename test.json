@@ -1,0 +1,61 @@
+[
+    {
+        "id": "4301-Melbourne-Ave,-Los-Angeles,-CA-90027",
+        "formattedAddress": "4301 Melbourne Ave, Los Angeles, CA 90027",
+        "addressLine1": "4301 Melbourne Ave",
+        "addressLine2": null,
+        "city": "Los Angeles",
+        "state": "CA",
+        "stateFips": "06",
+        "zipCode": "90027",
+        "county": "Los Angeles",
+        "countyFips": "037",
+        "latitude": 34.103841,
+        "longitude": -118.283238,
+        "propertyType": "Apartment",
+        "bedrooms": 6,
+        "bathrooms": 6,
+        "squareFootage": 3986,
+        "lotSize": 6797,
+        "yearBuilt": 1930,
+        "assessorID": "5591024025",
+        "legalDescription": "MOUNT HOLLYWOOD GRAND VIEW TRACT LOT 94",
+        "subdivision": "MOUNT HOLLYWOOD GRAND VIEW TR",
+        "zoning": "LAR2",
+        "features": {
+            "architectureType": "Condo / Apartment",
+            "cooling": true,
+            "coolingType": "Commercial",
+            "unitCount": 6
+        },
+        "taxAssessments": {
+            "2020": {
+                "year": 2020,
+                "value": 147174,
+                "land": 52653,
+                "improvements": 94521
+            }
+        },
+        "propertyTaxes": {
+            "2020": {
+                "year": 2020,
+                "total": 2674
+            }
+        },
+        "owner": {
+            "names": [
+                ""
+            ],
+            "mailingAddress": {
+                "id": "18-4th-St,-Hermosa-Beach,-CA-90254",
+                "addressLine1": "18 4th St",
+                "addressLine2": null,
+                "city": "Hermosa Beach",
+                "state": "CA",
+                "stateFips": "06",
+                "zipCode": "90254"
+            }
+        },
+        "ownerOccupied": false
+    }
+]
