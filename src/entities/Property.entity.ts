@@ -105,6 +105,12 @@ export class Property {
   @Column({ name: "rentcast_synced_at", type: "timestamp", nullable: true })
   rentcastSyncedAt!: Date | null;
 
+  @Column({ name: "property_data", type: "json", nullable: true })
+  propertyData!: object | null;
+
+  @Column({ name: "property_valuation", type: "json", nullable: true })
+  propertyValuation!: object | null;
+
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
 

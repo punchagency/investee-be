@@ -3,6 +3,7 @@ import requestIp from "request-ip";
 import { Reader, ReaderModel } from "@maxmind/geoip2-node";
 import path from "path";
 import logger from "./logger";
+import { verifyAccessToken } from "./jwt";
 
 // Extend Express Request interface to include location
 declare global {
@@ -37,7 +38,7 @@ Reader.open(path.join(process.cwd(), "GeoLite2-City.mmdb"))
 export const requestLogger = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const clientIp = requestIp.getClientIp(req);
@@ -75,15 +76,32 @@ export const requestLogger = (
     // Attach to request
     req.location = locationData;
 
+    // Extract User ID if available
+    let userId = "Guest";
+    try {
+      const token = req.cookies?.accessToken;
+      if (token) {
+        const decoded = verifyAccessToken(token);
+        if (decoded && decoded.userId) {
+          userId = decoded.userId;
+          // Optionally attach user to request if not already done by auth middleware
+          // req.user = decoded;
+        }
+      }
+    } catch (tokenError) {
+      // Token invalid or expired, treat as Guest
+    }
+
     logger.info(
       {
         method: req.method,
         url: req.url,
         ip: clientIp,
+        userId: userId,
         userAgent: req.get("User-Agent"),
         location: locationData,
       },
-      "Incoming request"
+      "Incoming request",
     );
   } catch (error) {
     logger.error(error, "Request Logger error");
